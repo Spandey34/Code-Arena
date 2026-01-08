@@ -99,7 +99,7 @@ const findMatch = async (req, res) => {
             res.status(200).json({ message: 'Match found!', gameId: game._id });
         } else {
             const problem = await Problem.findOne({
-                rating: { $gte: userRating - 100, $lte: userRating + 100 }
+                rating: { $gte: userRating - 300, $lte: userRating + 300 }
             });
             if (!problem) {
                 return res.status(404).json({ message: 'No suitable problem found.' });
