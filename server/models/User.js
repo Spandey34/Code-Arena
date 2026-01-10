@@ -29,10 +29,6 @@ const userSchema = new mongoose.Schema({
         gameId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Game'
-        },
-        timestamp: {
-            type: Date,
-            default: Date.now
         }
     }]
 }, { timestamps: true });

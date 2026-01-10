@@ -84,6 +84,10 @@ const Arena = ({ game, timeLeft }) => {
   /* ---------------- SOCKET ---------------- */
   useEffect(() => {
     if (!socket) return;
+    game.submissions.forEach(element => {
+      element.player==user._id ? setIsSubmitted(true)&setCode(element.code)&setSelectedLanguage(element.language) : ""
+      element.player!=user._id ? setOpponentSubmitted(true) : ""
+    });
 
     const handler = () => setOpponentSubmitted(true);
     socket.on("opponentSubmitted", handler);

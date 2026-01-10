@@ -10,7 +10,6 @@ import GamePage from './pages/GamePage';
 import PracticePage from './pages/PracticePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
-import DummyArena from './components/DummyArena';
 
 const PrivateRoute = ({ children }) => {
   const { user } = React.useContext(AuthContext);

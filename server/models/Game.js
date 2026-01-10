@@ -50,7 +50,8 @@ const gameSchema = new mongoose.Schema({
         default: Date.now
     },
     startTime: {
-        type: Date
+        type: Date,
+        default: Date.now
     }
 });
 

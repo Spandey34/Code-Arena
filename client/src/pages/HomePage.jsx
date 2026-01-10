@@ -57,7 +57,6 @@ const HomePage = () => {
                   const gameStatus = game.status;
                   const timeElapsed = (Date.now() - new Date(game.startTime).getTime()) / 1000;
                   const canRejoin = gameStatus === 'in-progress' && timeElapsed < 3600; // 1 hour
-                  console.log(history)
                   return (
                     <li key={index} className="py-4 flex justify-between items-center">
                       <div>
