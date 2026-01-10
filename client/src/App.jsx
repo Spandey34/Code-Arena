@@ -10,6 +10,7 @@ import GamePage from './pages/GamePage';
 import PracticePage from './pages/PracticePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import DummyArena from './components/DummyArena';
 
 const PrivateRoute = ({ children }) => {
   const { user } = React.useContext(AuthContext);
@@ -33,6 +34,7 @@ const App = () => {
         <Header />
         <Routes>
           <Route path="/" element={<HomePage />} />
+          {/* <Route path="/" element={<DummyArena />} /> */}
           <Route path="/login" element={<PrivateRoute><HomePage/></PrivateRoute>} />
           <Route path="/register" element={<RegisterRoute><HomePage/></RegisterRoute>} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />

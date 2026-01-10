@@ -1,172 +1,306 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import React, { useState, useContext, useEffect } from "react";
+import Editor from "@monaco-editor/react";
+import ReactMarkdown from "react-markdown";
+import { AuthContext } from "../context/AuthContext";
+
+const LANGUAGE_MAP = {
+  JavaScript: "javascript",
+  Python: "python",
+  Java: "java",
+  "C++": "cpp",
+};
+
+//Dummy Game type
+const dummyGame = {
+  _id: "game123",
+  problem: {
+    title: "Longest Subarray With Equal 0s and 1s",
+    description: `
+You are given a binary array consisting of only **0**s and **1**s.
+
+Your task is to find the length of the **longest contiguous subarray**
+with equal number of **0**s and **1**s.
+`,
+    input: `
+The first line contains an integer **n** — the size of the array.  
+The second line contains **n** space-separated integers (**0** or **1**).
+`,
+    output: `
+Print a single integer — the length of the longest contiguous subarray
+with equal number of **0**s and **1**s.
+`,
+    constraints: `
+- 1 ≤ **n** ≤ 2 × 10⁵**
+- Array elements are either **0** or **1**
+`,
+    rating: 1200,
+    testCases: [
+      { input: "\n6\n0 1 0 1 1 1\n", output: "\n4" },
+      { input: "5\n1 1 1 1 1", output: "0" },
+    ],
+  },
+};
+
+const CODE_TEMPLATES = {
+  JavaScript: `function solve() {
+  // write your code here
+}
+
+solve();`,
+  Python: `def solve():
+    # write your code here
+    pass
+
+solve()`,
+  Java: `import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // write your code here
+    }
+}`,
+  "C++": `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    // write your code here
+    return 0;
+}`,
+};
 
 const Arena = ({ game, timeLeft }) => {
   const { user, authFetch, socket } = useContext(AuthContext);
-  const [player1ConsoleOutput, setPlayer1ConsoleOutput] = useState('Ready...');
-  const [selectedLanguage, setSelectedLanguage] = useState('JavaScript');
-  const [code, setCode] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [opponentSubmitted, setOpponentSubmitted] = useState(false);
-  
+
   const problem = game.problem;
 
-  const LANGUAGES = ['JavaScript', 'Python', 'Java', 'C++'];
+  const [consoleOutput, setConsoleOutput] = useState("Ready...");
+  const [selectedLanguage, setSelectedLanguage] = useState("JavaScript");
+  const [code, setCode] = useState(CODE_TEMPLATES.JavaScript);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [opponentSubmitted, setOpponentSubmitted] = useState(false);
 
+  const LANGUAGES = Object.keys(LANGUAGE_MAP);
+
+  /* ---------------- SOCKET ---------------- */
   useEffect(() => {
-    if (socket) {
-      socket.on('opponentSubmitted', (data) => {
-        setOpponentSubmitted(true);
-      });
-    }
+    if (!socket) return;
+
+    const handler = () => setOpponentSubmitted(true);
+    socket.on("opponentSubmitted", handler);
+
+    return () => socket.off("opponentSubmitted", handler);
   }, [socket]);
 
-  const handleCopyPaste = (e) => {
-    e.preventDefault();
-  };
-  
+  /* ---------------- UTILS ---------------- */
   const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
-    return `${minutes}:${remainingSeconds}`;
+    const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const s = String(seconds % 60).padStart(2, "0");
+    return `${m}:${s}`;
   };
 
+  /* ---------------- RUN CODE ---------------- */
   const runCode = async () => {
-    setPlayer1ConsoleOutput('Running tests...');
+    setConsoleOutput("Running tests...\n");
     try {
-      const res = await authFetch.post('/game/run', {
+      const res = await authFetch.post("/game/run", {
         gameId: game._id,
         code,
         language: selectedLanguage,
       });
-      
-      const results = res.data.results;
-      console.log(results);
-      let output = 'Running tests...\n';
-      results.forEach((test, index) => {
-        output += test.passed ? `✔ Test Case ${index + 1} Passed\n` : `✖ Test Case ${index + 1} Failed: Expected ${test.expected}, got ${test.output}\n`;
+
+      let out = "Running tests...\n";
+      res.data.results.forEach((t, i) => {
+        out += t.passed
+          ? `✔ Test Case ${i + 1} Passed\n`
+          : `✖ Test Case ${i + 1} Failed: Expected ${t.expected}, got ${
+              t.output
+            }\n`;
       });
-      setPlayer1ConsoleOutput(output);
-    } catch (error) {
-      console.error('Code execution failed', error.response.data);
-      setPlayer1ConsoleOutput(error.response.data.message || 'An error occurred during execution.');
+
+      setConsoleOutput(out);
+    } catch (err) {
+      setConsoleOutput(err?.response?.data?.message || "Execution error");
     }
   };
 
+  /* ---------------- SUBMIT ---------------- */
   const submitSolution = async () => {
     if (isSubmitted) return;
-    setPlayer1ConsoleOutput('Submitting solution...');
+    setConsoleOutput("Submitting solution...\n");
+
     try {
-      const res = await authFetch.post('/game/submit', {
+      const res = await authFetch.post("/game/submit", {
         gameId: game._id,
         code,
         language: selectedLanguage,
       });
-      
-      const results = res.data.results;
-      const allTestsPassed = results.every(test => test.passed);
 
-      let output = 'Submission results...\n';
-      results.forEach((test, index) => {
-        output += test.passed ? `✔ Test Case ${index + 1} Passed\n` : `✖ Test Case ${index + 1} Failed: Expected ${test.expected}, got ${test.output}\n`;
+      let out = "Submission results...\n";
+      res.data.results.forEach((t, i) => {
+        out += t.passed
+          ? `✔ Test Case ${i + 1} Passed\n`
+          : `✖ Test Case ${i + 1} Failed: Expected ${t.expected}, got ${
+              t.output
+            }\n`;
       });
-      setPlayer1ConsoleOutput(output);
-      
-      setIsSubmitted(true);
-      if (socket) {
-        socket.emit('submissionStatus', { gameId: game._id, userId: user._id, status: 'submitted' });
-      }
 
-    } catch (error) {
-      console.error('Submission failed', error.response.data);
-      setPlayer1ConsoleOutput(error.response.data.message || 'An error occurred during submission.');
+      setConsoleOutput(out);
+      setIsSubmitted(true);
+
+      socket?.emit("submissionStatus", {
+        gameId: game._id,
+        userId: user._id,
+        status: "submitted",
+      });
+    } catch (err) {
+      setConsoleOutput(err?.response?.data?.message || "Submission failed");
     }
+  };
+
+  /* ---------------- EDITOR SECURITY ---------------- */
+  const onEditorMount = (editor) => {
+    editor.onKeyDown((e) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ["KeyC", "KeyV", "KeyX"].includes(e.code)
+      ) {
+        e.preventDefault();
+      }
+    });
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col">
-      <header className="bg-white/80 backdrop-blur-sm shadow-md sticky top-0 z-10">
+    <div className="min-h-screen flex flex-col">
+      {/* HEADER */}
+      <header className="bg-white shadow sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-slate-900">Problem: {problem.title}</h2>
-          </div>
-          <div className="flex items-center space-x-6">
-            <div className="flex flex-col items-center">
-              <span className="text-sm font-semibold text-slate-500">Your Status</span>
-              <div className="text-sm font-medium text-amber-600">{isSubmitted ? 'Submitted' : 'Not Submitted'}</div>
+          <h2 className="text-xl font-bold">Problem: {problem.title}</h2>
+
+          <div className="flex gap-6 text-center">
+            <div>
+              <div className="text-sm text-gray-500">You</div>
+              <div className="font-medium text-amber-600">
+                {isSubmitted ? "Submitted" : "Not Submitted"}
+              </div>
             </div>
-            <div className="flex flex-col items-center">
-              <span className="text-sm font-semibold text-slate-500">Opponent Status</span>
-              <div className="text-sm font-medium text-slate-400">{opponentSubmitted ? 'Submitted' : 'Not Submitted'}</div>
+
+            <div>
+              <div className="text-sm text-gray-500">Opponent</div>
+              <div className="font-medium text-gray-400">
+                {opponentSubmitted ? "Submitted" : "Not Submitted"}
+              </div>
             </div>
-            <div className="text-center">
-              <span className="text-sm font-semibold text-slate-500">Time Left</span>
-              <div className="text-2xl font-bold text-slate-900">{formatTime(timeLeft)}</div>
+
+            <div>
+              <div className="text-sm text-gray-500">Time</div>
+              <div className="text-xl font-bold">{formatTime(timeLeft)}</div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="flex-1 container mx-auto p-4 flex flex-col lg:flex-row gap-6">
-        <div className="bg-white rounded-xl shadow-lg flex-1 p-6">
-          <h3 className="text-xl font-semibold text-slate-800 mb-2">Problem Description</h3>
-          <p className="text-slate-600 mb-4">{problem.description}</p>
-          <h4 className="text-lg font-semibold text-slate-800 mb-2">Example 1:</h4>
-          <pre className="bg-slate-100 p-3 rounded-lg text-sm font-mono text-slate-700 overflow-x-auto">
-            Input: {problem.testCases[0]?.input || 'N/A'}
-            Output: {problem.testCases[0]?.output || 'N/A'}
-          </pre>
+      {/* MAIN */}
+      <div className="flex-1 container mx-auto p-4 grid lg:grid-cols-2 gap-6 min-h-0">
+        {/* PROBLEM PANEL */}
+        <div className="bg-white rounded-xl shadow p-6 space-y-6 overflow-y-auto">
+          <section>
+            <h3 className="font-semibold text-lg">Description</h3>
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown>{problem.description}</ReactMarkdown>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-lg">Input</h3>
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown>{problem.input}</ReactMarkdown>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-lg">Output</h3>
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown>{problem.output}</ReactMarkdown>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-lg">Constraints</h3>
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown>{problem.constraints}</ReactMarkdown>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-lg">Example</h3>
+            <pre className="bg-gray-100 p-3 rounded font-mono text-sm whitespace-pre-wrap break-words overflow-x-auto">
+              Input:
+              {`\n${problem.testCases[0].input}`}
+              Output:
+              {`\n${problem.testCases[0].output}`}
+            </pre>
+          </section>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg flex-1 flex flex-col">
-          <div className="p-4 flex justify-between items-center bg-slate-100 rounded-t-xl">
-            <div className="text-sm text-slate-600 font-semibold">Code Editor</div>
+        {/* EDITOR PANEL */}
+        <div className="bg-white rounded-xl shadow flex flex-col min-h-0">
+          <div className="p-3 bg-gray-100 flex justify-between items-center">
+            <span className="font-semibold text-sm">Editor</span>
             <select
               value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-              className="bg-white border border-slate-300 rounded-md px-2 py-1 text-sm font-mono focus:ring-amber-500 focus:border-amber-500"
+              onChange={(e) => {
+                setSelectedLanguage(e.target.value);
+                setCode(CODE_TEMPLATES[e.target.value]);
+              }}
+              className="border rounded px-2 py-1 text-sm font-mono"
             >
-              {LANGUAGES.map(lang => (
-                <option key={lang} value={lang}>{lang}</option>
+              {LANGUAGES.map((l) => (
+                <option key={l}>{l}</option>
               ))}
             </select>
           </div>
-          <div className="p-4 flex-1 flex flex-col bg-slate-800 text-slate-100 rounded-b-xl">
-            <div className="flex-1 flex flex-col">
-              <textarea
-                className="font-mono text-sm bg-transparent text-slate-100 w-full h-full flex-1 resize-none focus:outline-none"
-                placeholder="Type your code here..."
-                onCopy={handleCopyPaste}
-                onCut={handleCopyPaste}
-                onPaste={handleCopyPaste}
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              ></textarea>
-              <p className="text-xs text-slate-500 mt-2">
-                Note: Copying and pasting code is disabled for this competition.
-              </p>
-            </div>
-            <div className="mt-4 flex-1 flex flex-col h-48">
-              <h4 className="text-sm font-semibold text-slate-400 mb-2">Output Console</h4>
-              <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono text-slate-200 flex-1 overflow-y-auto">
-                <pre className="console-output whitespace-pre-wrap">{player1ConsoleOutput}</pre>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                onClick={runCode}
-                className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg"
-              >
-                Run Code
-              </button>
-              <button
-                onClick={submitSolution}
-                className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg"
-                disabled={isSubmitted}
-              >
-                Submit
-              </button>
-            </div>
+
+          <div className="flex-1 min-h-0">
+            <Editor
+              height="100%"
+              theme="vs-dark"
+              language={LANGUAGE_MAP[selectedLanguage]}
+              value={code}
+              onChange={(v) => setCode(v || "")}
+              onMount={onEditorMount}
+              options={{
+                readOnly: isSubmitted,
+                fontSize: 14,
+                automaticLayout: true,
+                minimap: { enabled: false },
+                tabSize: 2,
+                autoIndent: "full",
+                formatOnType: true,
+                formatOnPaste: true,
+              }}
+            />
+          </div>
+
+          <div className="p-3 bg-gray-900 text-gray-200 font-mono text-xs h-40 overflow-y-auto overflow-x-auto">
+            <pre className="whitespace-pre-wrap break-words">
+              {consoleOutput}
+            </pre>
+          </div>
+
+          <div className="p-3 grid grid-cols-2 gap-3">
+            <button
+              onClick={runCode}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded"
+            >
+              Run Code
+            </button>
+            <button
+              onClick={submitSolution}
+              disabled={isSubmitted}
+              className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white font-bold py-2 rounded"
+            >
+              Submit
+            </button>
           </div>
         </div>
       </div>

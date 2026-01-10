@@ -75,7 +75,7 @@ const endGame = async (gameId, submissions) => {
         player.gameHistory.push({ gameId: game._id, timestamp: Date.now() });
         await player.save();
     }
-    
+
 };
 
 
@@ -89,15 +89,15 @@ const findMatch = async (req, res) => {
             status: 'waiting',
             'player1': { $ne: userId }
         }).populate('problem');
-        
+
         let game1 = await Game.findOne({
             status: 'waiting',
-            player1:userId 
+            player1: userId
         }).populate('problem');
 
-        if(game1) return res.status(200).json({ message: 'Waiting for an opponent...', gameId: game1._id });
+        if (game1) return res.status(200).json({ message: 'Waiting for an opponent...', gameId: game1._id });
 
-        if (game && game.problem ) {
+        if (game && game.problem) {
             game.player2 = userId;
             game.status = 'in-progress';
             game.startTime = Date.now();
@@ -105,14 +105,19 @@ const findMatch = async (req, res) => {
 
             res.status(200).json({ message: 'Match found!', gameId: game._id });
         } else {
-            const problem = await Problem.findOne({
-                rating: { $gte: userRating - 200, $lte: userRating + 200 }
-            });
-            if (!problem) {
+            const problem = await Problem.aggregate([
+                {
+                    $match: {
+                        rating: { $gte: userRating - 200, $lte: userRating + 200 }
+                    }
+                },
+                { $sample: { size: 1 } }
+            ]);
+            if (!problem.length) {
                 return res.status(404).json({ message: 'No suitable problem found.' });
             }
-            
-            game = new Game({ player1: userId, problem: problem._id });
+            const selectedProblem = problem[0];
+            game = new Game({ player1: userId, problem: selectedProblem._id });
             await game.save();
             res.status(200).json({ message: 'Waiting for an opponent...', gameId: game._id });
         }
@@ -125,24 +130,24 @@ const runCode = async (req, res) => {
     const { gameId, code, language } = req.body;
     const userId = req.user._id;
     try {
-         const game = await Game.findById(gameId).populate('problem');
+        const game = await Game.findById(gameId).populate('problem');
         if (!game || game.status !== 'in-progress') {
             return res.status(404).json({ message: 'Game not found or has ended.' });
         }
-        
+
         const isPlayer1 = game.player1.toString() === userId.toString();
         const isPlayer2 = game.player2 && game.player2.toString() === userId.toString();
 
         if (!isPlayer1 && !isPlayer2) {
             return res.status(403).json({ message: 'Forbidden' });
         }
-        
+
         const executionResult = await runCodeInSandbox(code, language, game.problem.testCases);
-        
+
         if (executionResult.status === 'error' || executionResult.status === 'compile-error') {
             return res.status(500).json({ message: executionResult.message, results: [] });
         }
-        
+
         res.status(200).json({ message: 'Execution complete.', results: executionResult.testResults });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -159,14 +164,14 @@ const submitSolution = async (req, res) => {
         if (!game || game.status !== 'in-progress') {
             return res.status(404).json({ message: 'Game not found or has ended.' });
         }
-        
+
         const isPlayer1 = game.player1.toString() === userId.toString();
         const isPlayer2 = game.player2 && game.player2.toString() === userId.toString();
 
         if (!isPlayer1 && !isPlayer2) {
             return res.status(403).json({ message: 'Forbidden' });
         }
-        
+
         if (!game.problem) {
             return res.status(404).json({ message: 'Problem not found for this game.' });
         }
@@ -183,7 +188,7 @@ const submitSolution = async (req, res) => {
         }
 
         const allTestsPassed = executionResult.testResults.every(result => result.passed);
-        
+
         const submission = {
             player: userId,
             code,
@@ -228,12 +233,12 @@ const autoSubmit = async (req, res) => {
         if (!game || game.status !== 'in-progress') {
             return res.status(404).json({ message: 'Game not found or has ended.' });
         }
-        
+
         const hasSubmitted = game.submissions.some(s => s.player.toString() === userId.toString());
         if (hasSubmitted) {
             return res.status(200).json({ message: 'Already submitted.' });
         }
-        
+
         const executionResult = await runCodeInSandbox(code, language, game.problem.testCases);
 
         const submission = {
