@@ -18,15 +18,8 @@ const initSocketServer = (server) => {
         console.log(`User connected: ${socket.id}`);
         io.emit('activeUsersUpdate', io.engine.clientsCount);
 
-        // socket.on('disconnect', () => {
-        //     console.log(`User disconnected: ${socket.id}`);
-        //     io.emit('activeUsersUpdate', io.engine.clientsCount);
-        //     if (waitingUser && waitingUser.socketId === socket.id) {
-        //         waitingUser = null;
-        //     }
-        // });
 
-        socket.on("disconnect", () => {
+        socket.on("leaveQueue", () => {
             waitingQueue.delete(socket.id);
 
             for (let gameId in gameSockets) {
@@ -36,6 +29,12 @@ const initSocketServer = (server) => {
                 }
             }
             });
+
+            socket.on('disconnect', () => {
+            console.log(`User disconnected: ${socket.id}`);
+            io.emit('activeUsersUpdate', io.engine.clientsCount);
+            
+        });
 
 
         // socket.on('joinQueue', (data) => {
