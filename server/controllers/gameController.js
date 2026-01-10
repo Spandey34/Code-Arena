@@ -90,7 +90,14 @@ const findMatch = async (req, res) => {
             'player1': { $ne: userId }
         }).populate('problem');
         
-        if (game && game.problem && Math.abs(game.problem.rating - userRating) <= ratingRange) {
+        let game1 = await Game.findOne({
+            status: 'waiting',
+            player1:userId 
+        }).populate('problem');
+
+        if(game1) return res.status(200).json({ message: 'Waiting for an opponent...', gameId: game1._id });
+
+        if (game && game.problem ) {
             game.player2 = userId;
             game.status = 'in-progress';
             game.startTime = Date.now();
@@ -104,6 +111,7 @@ const findMatch = async (req, res) => {
             if (!problem) {
                 return res.status(404).json({ message: 'No suitable problem found.' });
             }
+            
             game = new Game({ player1: userId, problem: problem._id });
             await game.save();
             res.status(200).json({ message: 'Waiting for an opponent...', gameId: game._id });
@@ -117,7 +125,8 @@ const runCode = async (req, res) => {
     const { gameId, code, language } = req.body;
     const userId = req.user._id;
     try {
-        const game = await Game.findById(gameId).populate('problem');
+         const game = await Game.findById(gameId).populate('problem');
+        console.log(game);
         if (!game || game.status !== 'in-progress') {
             return res.status(404).json({ message: 'Game not found or has ended.' });
         }

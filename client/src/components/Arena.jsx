@@ -41,6 +41,7 @@ const Arena = ({ game, timeLeft }) => {
       });
       
       const results = res.data.results;
+      console.log(results);
       let output = 'Running tests...\n';
       results.forEach((test, index) => {
         output += test.passed ? `✔ Test Case ${index + 1} Passed\n` : `✖ Test Case ${index + 1} Failed: Expected ${test.expected}, got ${test.output}\n`;

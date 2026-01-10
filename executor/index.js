@@ -63,6 +63,8 @@ const demultiplexStream = (stream) => {
 };
 
 const executeCode = async (code, language, testCases) => {
+    // console.log("hello")
+    // console.log(code);
     let tempDir;
     try {
         tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'code-arena-'));
@@ -95,9 +97,13 @@ const executeCode = async (code, language, testCases) => {
             'C++': `/app/a.out`,
         };
 
+         console.log(compileCmd[language]);
+
         if (compileCmd[language]) {
+            
             let compContainer;
             try {
+                  console.log("compiling 1")
                 compContainer = await docker.createContainer({
                     Image: containerImage[language],
                     Tty: false,
@@ -113,6 +119,7 @@ const executeCode = async (code, language, testCases) => {
                     AttachStderr: true,
                 });
                 
+                console.log("compiling")
                 await compContainer.start();
                 const waitData = await compContainer.wait();
 
@@ -127,6 +134,8 @@ const executeCode = async (code, language, testCases) => {
                 }
             }
         }
+
+        console.log("Running test cases")
 
         const testResults = [];
         for (const test of testCases) {
@@ -147,49 +156,70 @@ const executeCode = async (code, language, testCases) => {
                 resolve();
             }, 5000));
 
-            const execPromise = new Promise(async (resolve, reject) => {
-                let execContainer;
-                try {
-                    execContainer = await docker.createContainer({
-                        Image: containerImage[language],
-                        Tty: false,
-                        Cmd: ['sh', '-c', `${runCmd[language]} < /app/input.txt`],
-                        HostConfig: {
-                            Binds: [`${tempDir}:/app`],
-                            NetworkMode: 'none',
-                            Memory: 256 * 1024 * 1024,
-                            CpuPeriod: 100000,
-                            CpuQuota: 50000,
-                        },
-                        AttachStdout: true,
-                        AttachStderr: true,
-                    });
-                    
-                    await execContainer.start();
-                    const logsStream = await execContainer.logs({ stdout: true, stderr: true, follow: true });
+ const execPromise = new Promise((resolve, reject) => {
+    (async () => {
+        let execContainer;
+        let logsStream;
 
-                    const { output, error } = await demultiplexStream(logsStream);
-                    
-                    const waitData = await execContainer.wait();
-
-                    if (waitData.StatusCode !== 0) {
-                        return reject(new Error(error || 'Runtime error'));
-                    }
-
-                    executionResult.output = output.trim();
-                    if (output.trim() === test.output.trim()) {
-                        executionResult.passed = true;
-                    }
-                    resolve(executionResult);
-
-                } catch (error) {
-                    reject(error);
-                } finally {
-                    if (execContainer) {
-                        await execContainer.remove({ force: true });
-                    }
-                }
+        try {
+            execContainer = await docker.createContainer({
+                Image: containerImage[language],
+                Tty: false,
+                Cmd: ['sh', '-c', `${runCmd[language]} < /app/input.txt`],
+                HostConfig: {
+                    Binds: [`${tempDir}:/app`],
+                    NetworkMode: 'none',
+                    Memory: 256 * 1024 * 1024,
+                    CpuPeriod: 100000,
+                    CpuQuota: 50000,
+                },
+                AttachStdout: true,
+                AttachStderr: true,
             });
+
+            await execContainer.start();
+
+            logsStream = await execContainer.logs({
+                stdout: true,
+                stderr: true,
+                follow: true,
+            });
+
+            const { output, error } = await demultiplexStream(logsStream);
+            const waitData = await execContainer.wait();
+
+            if (waitData.StatusCode !== 0) {
+                throw new Error(error || 'Runtime error');   // 🔥 DO NOT reject here
+            }
+
+            executionResult.output = output.trim();
+            if (output.trim() === test.output.trim()) {
+                executionResult.passed = true;
+            }
+
+            resolve(executionResult);
+
+        } catch (err) {
+            console.log("error occurred:", err.message);
+            reject(err);
+        } finally {
+            // 🔥 close log stream before removing container
+            if (logsStream) {
+                logsStream.destroy();
+            }
+
+            if (execContainer) {
+                try {
+                    await execContainer.remove({ force: true });
+                } catch (e) {
+                    console.warn("Container cleanup failed:", e.message);
+                }
+            }
+        }
+    })();
+});
+
+
 
             try {
                 const finalResult = await Promise.race([execPromise, timeoutPromise]);
@@ -204,9 +234,11 @@ const executeCode = async (code, language, testCases) => {
                 testResults.push(executionResult);
             }
         }
+        // console.log(testResults)
         return { status: 'success', testResults };
 
     } catch (error) {
+       // 
         const message = error.message.includes('No such image') ? 'Required Docker image not found.' : 'An unexpected error occurred.';
         return { status: 'error', message, testResults: [] };
     } finally {
