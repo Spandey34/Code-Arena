@@ -13,7 +13,12 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 
 const PrivateRoute = ({ children }) => {
   const { user } = React.useContext(AuthContext);
-  return user ? children : <Navigate to="/login" />;
+  return user ? children : <LoginPage />;
+};
+
+const RegisterRoute = ({ children }) => {
+  const { user } = React.useContext(AuthContext);
+  return user ? children : <RegisterPage />;
 };
 
 const AdminRoute = ({ children }) => {
@@ -28,8 +33,8 @@ const App = () => {
         <Header />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<PrivateRoute><HomePage/></PrivateRoute>} />
+          <Route path="/register" element={<RegisterRoute><HomePage/></RegisterRoute>} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
 
           <Route path="/matchmaking" element={<PrivateRoute><MatchmakingPage /></PrivateRoute>} />
