@@ -73,7 +73,7 @@ const ProblemForm = () => {
         <h4 className="text-md font-semibold text-slate-800 mb-2">Test Cases</h4>
         {testCases.map((testCase, index) => (
           <div key={index} className="grid grid-cols-2 gap-4 mb-2">
-            <input
+            <textarea
               type="text"
               placeholder="Input"
               value={testCase.input}
@@ -81,7 +81,7 @@ const ProblemForm = () => {
               className="block w-full border border-slate-300 rounded-md shadow-sm p-2"
               required
             />
-            <input
+            <textarea
               type="text"
               placeholder="Output"
               value={testCase.output}

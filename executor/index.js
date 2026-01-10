@@ -63,8 +63,6 @@ const demultiplexStream = (stream) => {
 };
 
 const executeCode = async (code, language, testCases) => {
-    // console.log("hello")
-    // console.log(code);
     let tempDir;
     try {
         tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'code-arena-'));
@@ -97,13 +95,9 @@ const executeCode = async (code, language, testCases) => {
             'C++': `/app/a.out`,
         };
 
-         console.log(compileCmd[language]);
-
         if (compileCmd[language]) {
-            
             let compContainer;
             try {
-                  console.log("compiling 1")
                 compContainer = await docker.createContainer({
                     Image: containerImage[language],
                     Tty: false,
@@ -119,7 +113,6 @@ const executeCode = async (code, language, testCases) => {
                     AttachStderr: true,
                 });
                 
-                console.log("compiling")
                 await compContainer.start();
                 const waitData = await compContainer.wait();
 
@@ -134,8 +127,7 @@ const executeCode = async (code, language, testCases) => {
                 }
             }
         }
-
-        console.log("Running test cases")
+        
 
         const testResults = [];
         for (const test of testCases) {
@@ -155,6 +147,7 @@ const executeCode = async (code, language, testCases) => {
                 isTLE = true;
                 resolve();
             }, 5000));
+            
 
  const execPromise = new Promise((resolve, reject) => {
     (async () => {
