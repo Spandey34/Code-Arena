@@ -23,12 +23,14 @@ const authRoutes = require('./routes/authRoutes');
 const gameRoutes = require('./routes/gameRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const problemRoutes = require('./routes/problemRoutes');
 
 // Use Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/problems', problemRoutes);
 
 // Simple route to check if the server is running
 app.get('/', (req, res) => {

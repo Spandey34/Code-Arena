@@ -10,6 +10,8 @@ import GamePage from './pages/GamePage';
 import PracticePage from './pages/PracticePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminProblems from './pages/Adminproblem';
+import Practice from './components/Practice';
 
 const PrivateRoute = ({ children }) => {
   const { user } = React.useContext(AuthContext);
@@ -41,8 +43,10 @@ const App = () => {
           <Route path="/matchmaking" element={<PrivateRoute><MatchmakingPage /></PrivateRoute>} />
           <Route path="/game/:gameId" element={<PrivateRoute><GamePage /></PrivateRoute>} />
           <Route path="/practice" element={<PrivateRoute><PracticePage /></PrivateRoute>} />
+          <Route path="/practice/:problemId" element={<PrivateRoute><Practice /></PrivateRoute>} />
           
           <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+          <Route path="admin/problems" element={<AdminRoute><AdminProblems/></AdminRoute>} />
         </Routes>
       </AuthProvider>
     </Router>

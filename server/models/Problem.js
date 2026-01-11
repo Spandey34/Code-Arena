@@ -42,6 +42,7 @@ const problemSchema = new mongoose.Schema({
         required: true
     },
     testCases: [testCaseSchema],
+    isActive: { type: Boolean, default: true },
     correctSolution: {
         type: String,
         required: true

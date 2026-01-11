@@ -22,9 +22,23 @@ const Header = () => {
               <NavLink to="/practice" className="text-slate-600 hover:text-slate-900 transition-colors">Practice</NavLink>
               <NavLink to="/leaderboard" className="text-slate-600 hover:text-slate-900 transition-colors">Leaderboard</NavLink>
               {user.role === 'admin' && (
-                <NavLink to="/admin" className="text-amber-500 hover:text-amber-600 transition-colors">Admin</NavLink>
-              )}
-            </>
+                      <>
+                        <NavLink
+                          to="/admin"
+                          className="text-amber-500 hover:text-amber-600 transition-colors"
+                        >
+                          Admin
+                        </NavLink>
+
+                        <NavLink
+                          to="/admin/problems"
+                          className="text-amber-500 hover:text-amber-600 transition-colors"
+                        >
+                          Manage Problems
+                        </NavLink>
+                      </>
+                    )}
+       </>
           )}
         </div>
         <div className="flex items-center space-x-4">
