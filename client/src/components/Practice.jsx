@@ -5,62 +5,62 @@ import { AuthContext } from "../context/AuthContext";
 import { useParams } from "react-router-dom";
 
 const LANGUAGE_MAP = {
-  JavaScript: "javascript",
-  Python: "python",
-  Java: "java",
-  "C++": "cpp",
+    JavaScript: "javascript",
+    Python: "python",
+    Java: "java",
+    "C++": "cpp",
 };
 
 //Dummy Game type
 const dummyGame = {
-  _id: "game123",
-  problem: {
-    title: "Longest Subarray With Equal 0s and 1s",
-    description: `
+    _id: "game123",
+    problem: {
+        title: "Longest Subarray With Equal 0s and 1s",
+        description: `
 You are given a binary array consisting of only **0**s and **1**s.
 
 Your task is to find the length of the **longest contiguous subarray**
 with equal number of **0**s and **1**s.
 `,
-    input: `
+        input: `
 The first line contains an integer **n** — the size of the array.  
 The second line contains **n** space-separated integers (**0** or **1**).
 `,
-    output: `
+        output: `
 Print a single integer — the length of the longest contiguous subarray
 with equal number of **0**s and **1**s.
 `,
-    constraints: `
+        constraints: `
 - 1 ≤ **n** ≤ 2 × 10⁵**
 - Array elements are either **0** or **1**
 `,
-    rating: 1200,
-    testCases: [
-      { input: "\n6\n0 1 0 1 1 1\n", output: "\n4" },
-      { input: "5\n1 1 1 1 1", output: "0" },
-    ],
-  },
+        rating: 1200,
+        testCases: [
+            { input: "\n6\n0 1 0 1 1 1\n", output: "\n4" },
+            { input: "5\n1 1 1 1 1", output: "0" },
+        ],
+    },
 };
 
 const CODE_TEMPLATES = {
-  JavaScript: `function solve() {
+    JavaScript: `function solve() {
   // write your code here
 }
 
 solve();`,
-  Python: `def solve():
+    Python: `def solve():
     # write your code here
     pass
 
 solve()`,
-  Java: `import java.util.*;
+    Java: `import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
         // write your code here
     }
 }`,
-  "C++": `#include <bits/stdc++.h>
+    "C++": `#include <bits/stdc++.h>
 using namespace std;
 
 int main() {
@@ -71,242 +71,249 @@ int main() {
 
 const Practice = () => {
     const { problemId } = useParams();
-  const { user, authFetch, socket } = useContext(AuthContext);
+    const { user, authFetch, socket } = useContext(AuthContext);
 
-  const[problem, setProblem] = useState(null);
+    const [problem, setProblem] = useState(null);
 
-  const [consoleOutput, setConsoleOutput] = useState("Ready...");
-  const [selectedLanguage, setSelectedLanguage] = useState("JavaScript");
-  const [code, setCode] = useState(CODE_TEMPLATES.JavaScript);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [opponentSubmitted, setOpponentSubmitted] = useState(false);
-  const [loading, setLoading] = useState(true);
+    const [consoleOutput, setConsoleOutput] = useState("Ready...");
+    const [selectedLanguage, setSelectedLanguage] = useState("JavaScript");
+    const [code, setCode] = useState(CODE_TEMPLATES.JavaScript);
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [opponentSubmitted, setOpponentSubmitted] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-  const LANGUAGES = Object.keys(LANGUAGE_MAP);
- useEffect(() => {
-  const fetchProblem = async () => {
-    try {
-      const res = await authFetch.get(`/problems/practice/${problemId}`);
-       // headers: { Authorization: `Bearer ${token}` }
-      
-      setProblem(res.data);
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch problem", error);
-      setLoading(false);
-    }
-  };
+    const LANGUAGES = Object.keys(LANGUAGE_MAP);
+    useEffect(() => {
+        const fetchProblem = async () => {
+            try {
+                const res = await authFetch.get(`/problems/practice/${problemId}`);
+                // headers: { Authorization: `Bearer ${token}` }
 
-  fetchProblem();
-}, [authFetch]);
+                setProblem(res.data);
+                setLoading(false);
+            } catch (error) {
+                console.error("Failed to fetch problem", error);
+                setLoading(false);
+            }
+        };
+
+        fetchProblem();
+    }, [authFetch]);
 
 
-  /* ---------------- UTILS ---------------- */
+    /* ---------------- UTILS ---------------- */
 
-  /* ---------------- RUN CODE ---------------- */
-  const runCode = async () => {
-    setConsoleOutput("Running tests...\n");
-    try {
-      const res = await authFetch.post("/game/run", {
-        gameId: game._id,
-        code,
-        language: selectedLanguage,
-      });
+    /* ---------------- RUN CODE ---------------- */
+    const runCode = async () => {
+        setConsoleOutput("Running tests...\n");
+        try {
+            const res = await authFetch.post("/problems/run", {
+                problemId: problemId,
+                code,
+                language: selectedLanguage,
+            });
 
-      let out = "Running tests...\n";
-      res.data.results.forEach((t, i) => {
-        out += t.passed
-          ? `✔ Test Case ${i + 1} Passed\n`
-          : `✖ Test Case ${i + 1} Failed: Expected ${t.expected}, got ${
-              t.output
-            }\n`;
-      });
+            let out = "Running tests...\n";
+            res.data.results.forEach((t, i) => {
+                out += t.passed
+                    ? `✔ Test Case ${i + 1} Passed\n`
+                    : `✖ Test Case ${i + 1} Failed: Expected ${t.expected}, got ${t.output
+                    }\n`;
+            });
 
-      setConsoleOutput(out);
-    } catch (err) {
-      setConsoleOutput(err?.response?.data?.message || "Execution error");
-    }
-  };
+            setConsoleOutput(out);
+        } catch (err) {
+            setConsoleOutput(err?.response?.data?.message || "Execution error");
+        }
+    };
 
-  /* ---------------- SUBMIT ---------------- */
-  const submitSolution = async () => {
-    if (isSubmitted) return;
-    setConsoleOutput("Submitting solution...\n");
+    /* ---------------- SUBMIT ---------------- */
+    const submitSolution = async () => {
+       // if (isSubmitted) return;
+        setConsoleOutput("Submitting solution...\n");
 
-    try {
-      const res = await authFetch.post("/game/submit", {
-        gameId: game._id,
-        code,
-        language: selectedLanguage,
-      });
+        try {
+            const res = await authFetch.post("/problems/submit", {
+                problemId: problemId,
+                code,
+                language: selectedLanguage,
+            });
 
-      let out = "Submission results...\n";
-      res.data.results.forEach((t, i) => {
-        out += t.passed
-          ? `✔ Test Case ${i + 1} Passed\n`
-          : `✖ Test Case ${i + 1} Failed: Expected ${t.expected}, got ${
-              t.output
-            }\n`;
-      });
 
-      setConsoleOutput(out);
-      setIsSubmitted(true);
+            let out = "Submission results...\n";
+            // res.data.results.forEach((t, i) => {
+            //     out += t.passed
+            //         ? `✔ Test Case ${i + 1} Passed\n`
+            //         : `✖ Test Case ${i + 1} Failed: Expected ${t.expected}, got ${t.output
+            //         }\n`;
+            // });
 
-      socket?.emit("submissionStatus", {
-        gameId: game._id,
-        userId: user._id,
-        status: "submitted",
-      });
-    } catch (err) {
-      setConsoleOutput(err?.response?.data?.message || "Submission failed");
-    }
-  };
+            //console.log(res.data);
+            if (res.data.success) {
+                out += "🎉 Accepted! All test cases passed.\n";
+            } else {
+                out += "✖ Wrong Answer. Some test cases failed.\n";
+            }
 
-  /* ---------------- EDITOR SECURITY ---------------- */
-  const onEditorMount = (editor) => {
-    editor.onKeyDown((e) => {
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        ["KeyC", "KeyV", "KeyX"].includes(e.code)
-      ) {
-        e.preventDefault();
-      }
-    });
-  };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      {/* HEADER */}
-      <header className="bg-white shadow sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <h2 className="text-xl font-bold">Problem: {problem?.title}</h2>
+            setConsoleOutput(out);
+          //  setIsSubmitted(true);
 
-          <div className="flex gap-6 text-center">
-            <div>
-              <div className="text-sm text-gray-500">You</div>
-              <div className="font-medium text-amber-600">
-                {isSubmitted ? "Submitted" : "Not Submitted"}
-              </div>
+            // socket?.emit("submissionStatus", {
+            //     gameId: game._id,
+            //     userId: user._id,
+            //     status: "submitted",
+            // });
+        } catch (err) {
+            setConsoleOutput(err?.response?.data?.message || "Submission fail");
+        }
+    };
+
+    /* ---------------- EDITOR SECURITY ---------------- */
+    const onEditorMount = (editor) => {
+        editor.onKeyDown((e) => {
+            if (
+                (e.ctrlKey || e.metaKey) &&
+                ["KeyC", "KeyV", "KeyX"].includes(e.code)
+            ) {
+                e.preventDefault();
+            }
+        });
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col">
+            {/* HEADER */}
+            <header className="bg-white shadow sticky top-0 z-10">
+                <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+                    <h2 className="text-xl font-bold">Problem: {problem?.title}</h2>
+
+                    <div className="flex gap-6 text-center">
+                        <div>
+                            <div className="text-sm text-gray-500">You</div>
+                            <div className="font-medium text-amber-600">
+                                {isSubmitted ? "Submitted" : "Not Submitted"}
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="text-sm text-gray-500">Opponent</div>
+                            <div className="font-medium text-gray-400">
+                                {opponentSubmitted ? "Submitted" : "Not Submitted"}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </header>
+
+            {/* MAIN */}
+            <div className="flex-1 container mx-auto p-4 grid lg:grid-cols-2 gap-6 min-h-0">
+                {/* PROBLEM PANEL */}
+                <div className="bg-white rounded-xl shadow p-6 space-y-6 overflow-y-auto">
+                    <section>
+                        <h3 className="font-semibold text-lg">Description</h3>
+                        <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown>{problem?.description}</ReactMarkdown>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="font-semibold text-lg">Input</h3>
+                        <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown>{problem?.input}</ReactMarkdown>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="font-semibold text-lg">Output</h3>
+                        <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown>{problem?.output}</ReactMarkdown>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="font-semibold text-lg">Constraints</h3>
+                        <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown>{problem?.constraints}</ReactMarkdown>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="font-semibold text-lg">Example</h3>
+                        <pre className="bg-gray-100 p-3 rounded font-mono text-sm whitespace-pre-wrap break-words overflow-x-auto">
+                            Input:
+                            {`\n${problem?.testCases[0].input}\n`}
+                            Output:
+                            {`\n${problem?.testCases[0].output}`}
+                        </pre>
+                    </section>
+                </div>
+
+                {/* EDITOR PANEL */}
+                <div className="bg-white rounded-xl shadow flex flex-col min-h-0">
+                    <div className="p-3 bg-gray-100 flex justify-between items-center">
+                        <span className="font-semibold text-sm">Editor</span>
+                        <select
+                            value={selectedLanguage}
+                            onChange={(e) => {
+                                setSelectedLanguage(e.target.value);
+                                setCode(CODE_TEMPLATES[e.target.value]);
+                            }}
+                            className="border rounded px-2 py-1 text-sm font-mono"
+                        >
+                            {LANGUAGES.map((l) => (
+                                <option key={l}>{l}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex-1 min-h-0">
+                        <Editor
+                            height="100%"
+                            theme="vs-dark"
+                            language={LANGUAGE_MAP[selectedLanguage]}
+                            value={code}
+                            onChange={(v) => setCode(v || "")}
+                            onMount={onEditorMount}
+                            options={{
+                                readOnly: isSubmitted,
+                                fontSize: 14,
+                                automaticLayout: true,
+                                minimap: { enabled: false },
+                                tabSize: 2,
+                                autoIndent: "full",
+                                formatOnType: true,
+                                formatOnPaste: true,
+                            }}
+                        />
+                    </div>
+
+                    <div className="p-3 bg-gray-900 text-gray-200 font-mono text-xs h-40 overflow-y-auto overflow-x-auto">
+                        <pre className="whitespace-pre-wrap break-words">
+                            {consoleOutput}
+                        </pre>
+                    </div>
+
+                    <div className="p-3 grid grid-cols-2 gap-3">
+                        <button
+                            onClick={runCode}
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded"
+                        >
+                            Run Code
+                        </button>
+                        <button
+                            onClick={submitSolution}
+                            disabled={isSubmitted}
+                            className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white font-bold py-2 rounded"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </div>
             </div>
-
-            <div>
-              <div className="text-sm text-gray-500">Opponent</div>
-              <div className="font-medium text-gray-400">
-                {opponentSubmitted ? "Submitted" : "Not Submitted"}
-              </div>
-            </div>
-
-          </div>
         </div>
-      </header>
-
-      {/* MAIN */}
-      <div className="flex-1 container mx-auto p-4 grid lg:grid-cols-2 gap-6 min-h-0">
-        {/* PROBLEM PANEL */}
-        <div className="bg-white rounded-xl shadow p-6 space-y-6 overflow-y-auto">
-          <section>
-            <h3 className="font-semibold text-lg">Description</h3>
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{problem?.description}</ReactMarkdown>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="font-semibold text-lg">Input</h3>
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{problem?.input}</ReactMarkdown>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="font-semibold text-lg">Output</h3>
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{problem?.output}</ReactMarkdown>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="font-semibold text-lg">Constraints</h3>
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{problem?.constraints}</ReactMarkdown>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="font-semibold text-lg">Example</h3>
-            <pre className="bg-gray-100 p-3 rounded font-mono text-sm whitespace-pre-wrap break-words overflow-x-auto">
-              Input:
-              {`\n${problem?.testCases[0].input}\n`}
-              Output:
-              {`\n${problem?.testCases[0].output}`}
-            </pre>
-          </section>
-        </div>
-
-        {/* EDITOR PANEL */}
-        <div className="bg-white rounded-xl shadow flex flex-col min-h-0">
-          <div className="p-3 bg-gray-100 flex justify-between items-center">
-            <span className="font-semibold text-sm">Editor</span>
-            <select
-              value={selectedLanguage}
-              onChange={(e) => {
-                setSelectedLanguage(e.target.value);
-                setCode(CODE_TEMPLATES[e.target.value]);
-              }}
-              className="border rounded px-2 py-1 text-sm font-mono"
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l}>{l}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex-1 min-h-0">
-            <Editor
-              height="100%"
-              theme="vs-dark"
-              language={LANGUAGE_MAP[selectedLanguage]}
-              value={code}
-              onChange={(v) => setCode(v || "")}
-              onMount={onEditorMount}
-              options={{
-                readOnly: isSubmitted,
-                fontSize: 14,
-                automaticLayout: true,
-                minimap: { enabled: false },
-                tabSize: 2,
-                autoIndent: "full",
-                formatOnType: true,
-                formatOnPaste: true,
-              }}
-            />
-          </div>
-
-          <div className="p-3 bg-gray-900 text-gray-200 font-mono text-xs h-40 overflow-y-auto overflow-x-auto">
-            <pre className="whitespace-pre-wrap break-words">
-              {consoleOutput}
-            </pre>
-          </div>
-
-          <div className="p-3 grid grid-cols-2 gap-3">
-            <button
-              onClick={runCode}
-              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded"
-            >
-              Run Code
-            </button>
-            <button
-              onClick={submitSolution}
-              disabled={isSubmitted}
-              className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white font-bold py-2 rounded"
-            >
-              Submit
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default Practice;
