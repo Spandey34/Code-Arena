@@ -1,0 +1,25 @@
+/* CSS Custom Properties for Theming */
+:root {
+  /* Light Theme */
+  --primary-color: #4361ee;
+  --secondary-color: #3a0ca3;
+  --background-color: #f8f9fa;
+  --surface-color: #ffffff;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --border-color: #e9ecef;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --transition-speed: 0.3s;
+}
+
+[data-theme="dark"] {
+  /* Dark Theme */
+  --primary-color: #4cc9f0;
+  --secondary-color: #4361ee;
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --text-primary: #f8f9fa;
+  --text-secondary: #adb5bd;
+  --border-color: #2d3748;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
