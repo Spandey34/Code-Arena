@@ -24,6 +24,7 @@ const gameRoutes = require('./routes/gameRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const problemRoutes = require('./routes/problemRoutes');
+const constestRoutes = require('./routes/contestRoutes');
 
 // Use Routes
 app.use('/api/auth', authRoutes);
@@ -31,6 +32,7 @@ app.use('/api/game', gameRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/problems', problemRoutes);
+app.use('/api/contest', constestRoutes);
 
 // Simple route to check if the server is running
 app.get('/', (req, res) => {

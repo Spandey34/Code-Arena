@@ -350,5 +350,6 @@ module.exports = {
     runCode,
     submitSolution,
     getGameDetails,
-    autoSubmit
+    autoSubmit,
+    runCodeInSandbox
 };

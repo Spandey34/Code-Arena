@@ -13,6 +13,12 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminProblems from './pages/Adminproblem';
 import Practice from './components/Practice';
+import CreateContest from './pages/AdminContestcreatePage';
+import AdminContestshistory from './pages/AdmincontestHistorypage';
+import UserContests from './pages/Usercontest/contesthistory';
+import ContestDetails from './pages/Usercontest/ParticularContest';
+import ContestSolve from './components/ContestPractice';
+import ContestScoreboard from './pages/Usercontest/Scoreboard';
 
 const PrivateRoute = ({ children }) => {
   const { user } = React.useContext(AuthContext);
@@ -45,9 +51,16 @@ const App = () => {
             <Route path="/game/:gameId" element={<PrivateRoute><GamePage /></PrivateRoute>} />
             <Route path="/practice" element={<PrivateRoute><PracticePage /></PrivateRoute>} />
             <Route path="/practice/:problemId" element={<PrivateRoute><Practice /></PrivateRoute>} />
+
+             <Route path="/contests" element={<PrivateRoute><UserContests/></PrivateRoute>} />
+             <Route path="/contest/:id" element={<PrivateRoute><ContestDetails/></PrivateRoute>} />
+             <Route path="/contest/:contestId/problem/:problemId" element={<PrivateRoute><ContestSolve/></PrivateRoute>} />
+             <Route path="/contest/:contestId/scoreboard" element={<PrivateRoute><ContestScoreboard/></PrivateRoute>} />
             
             <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
             <Route path="admin/problems" element={<AdminRoute><AdminProblems/></AdminRoute>} />
+            <Route path="admin/contest/create" element={<AdminRoute><CreateContest/></AdminRoute>} />
+            <Route path="admin/contest/history" element={<AdminRoute><AdminContestshistory/></AdminRoute>} />
           </Routes>
         </AuthProvider>
       </ThemeProvider>

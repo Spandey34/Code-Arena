@@ -69,6 +69,7 @@ const Header = () => {
     { to: '/matchmaking', label: 'Matchmaking', icon: <Sword size={18} />, requiresAuth: true },
     { to: '/practice', label: 'Practice', icon: <BookOpen size={18} />, requiresAuth: true },
     { to: '/leaderboard', label: 'Leaderboard', icon: <Trophy size={18} /> },
+    { to: '/contests', label: 'Contests', icon: <Shield size={18} />, requiresAuth: true },
   ];
 
   return (
@@ -157,6 +158,24 @@ const Header = () => {
                       >
                         <Settings size={18} />
                         <span>Dashboard</span>
+                      </NavLink>
+
+                      <NavLink
+                        to="admin/contest/create"
+                        onClick={() => setIsAdminDropdownOpen(false)}
+                        className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Settings size={18} />
+                        <span>create contest</span>
+                      </NavLink>
+
+                      <NavLink
+                        to="admin/contest/history"
+                        onClick={() => setIsAdminDropdownOpen(false)}
+                        className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Settings size={18} />
+                        <span>contest history</span>
                       </NavLink>
                     </div>
                   )}
