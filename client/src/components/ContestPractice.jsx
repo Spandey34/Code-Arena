@@ -189,7 +189,12 @@ const ContestSolve = () => {
         setTimeout(() => {
           setConsoleOutput(prev => prev + "\n✨ Great job! Your solution has been recorded.");
         }, 500);
-      } else {
+      }
+      else if (res.data.verdict === "IGNORED") {
+        out += "⚠️ Already Solved\n";
+        out += "You have already solved this problem in this contest. This submission is ignored.";
+      }
+       else {
         out += "❌ WRONG ANSWER\n";
         out += "Some test cases failed. Review your solution and try again.\n";
         

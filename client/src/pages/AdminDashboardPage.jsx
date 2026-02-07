@@ -50,7 +50,7 @@ const AdminDashboardPage = () => {
     if (!window.confirm('Are you sure you want to delete this problem?')) return;
     
     try {
-      await authFetch.delete(`/problems/admin/problem/${id}`);
+      await authFetch.delete(`/admin/problems/${id}`);
       fetchProblems();
     } catch (error) {
       console.error('Failed to delete problem:', error);

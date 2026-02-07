@@ -175,10 +175,12 @@ const findMatch = async (req, res) => {
 /* ---------------- RUN CODE ---------------- */
 const runCode = async (req, res) => {
     const { gameId, code, language } = req.body;
+    
     const userId = req.user._id;
 
     try {
         const game = await Game.findById(gameId).populate('problem');
+       
 
         if (!game || game.status !== 'in-progress') {
             return res.status(404).json({
