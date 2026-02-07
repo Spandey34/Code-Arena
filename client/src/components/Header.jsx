@@ -13,7 +13,10 @@ import {
   Shield,
   Settings,
   ChevronDown,
-  Code
+  ChevronRight,
+  Code,
+  PlusCircle,
+  History
 } from 'lucide-react';
 
 const Header = () => {
@@ -23,6 +26,7 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
+  const [isMobileAdminOpen, setIsMobileAdminOpen] = useState(false);
   const adminDropdownRef = useRef(null);
   const adminButtonRef = useRef(null);
 
@@ -59,10 +63,15 @@ const Header = () => {
     navigate('/login');
     setIsMobileMenuOpen(false);
     setIsAdminDropdownOpen(false);
+    setIsMobileAdminOpen(false);
   };
 
   const toggleAdminDropdown = () => {
     setIsAdminDropdownOpen(!isAdminDropdownOpen);
+  };
+
+  const toggleMobileAdmin = () => {
+    setIsMobileAdminOpen(!isMobileAdminOpen);
   };
 
   const navLinks = [
@@ -70,6 +79,12 @@ const Header = () => {
     { to: '/practice', label: 'Practice', icon: <BookOpen size={18} />, requiresAuth: true },
     { to: '/leaderboard', label: 'Leaderboard', icon: <Trophy size={18} /> },
     { to: '/contests', label: 'Contests', icon: <Shield size={18} />, requiresAuth: true },
+  ];
+
+  const adminLinks = [
+    { to: '/admin', label: 'Dashboard', icon: <Settings size={18} /> },
+    { to: '/admin/contest/create', label: 'Create Contest', icon: <PlusCircle size={18} /> },
+    { to: '/admin/contest/history', label: 'Contest History', icon: <History size={18} /> },
   ];
 
   return (
@@ -90,6 +105,7 @@ const Header = () => {
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 setIsAdminDropdownOpen(false);
+                setIsMobileAdminOpen(false);
               }}
             >
               <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -151,32 +167,20 @@ const Header = () => {
                   
                   {isAdminDropdownOpen && (
                     <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                      <NavLink
-                        to="/admin"
-                        onClick={() => setIsAdminDropdownOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <Settings size={18} />
-                        <span>Dashboard</span>
-                      </NavLink>
-
-                      <NavLink
-                        to="admin/contest/create"
-                        onClick={() => setIsAdminDropdownOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <Settings size={18} />
-                        <span>create contest</span>
-                      </NavLink>
-
-                      <NavLink
-                        to="admin/contest/history"
-                        onClick={() => setIsAdminDropdownOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <Settings size={18} />
-                        <span>contest history</span>
-                      </NavLink>
+                      {adminLinks.map((link) => (
+                        <NavLink
+                          key={link.to}
+                          to={link.to}
+                          onClick={() => setIsAdminDropdownOpen(false)}
+                          className={`
+                            flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                            ${location.pathname === link.to ? 'bg-gray-50 dark:bg-gray-700' : ''}
+                          `}
+                        >
+                          {link.icon}
+                          <span>{link.label}</span>
+                        </NavLink>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -256,7 +260,10 @@ const Header = () => {
         <>
           <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsMobileAdminOpen(false);
+            }}
           />
           
           <div className="fixed inset-y-0 right-0 w-64 bg-white dark:bg-gray-900 z-50 lg:hidden">
@@ -264,7 +271,10 @@ const Header = () => {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">Menu</h2>
                 <button
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsMobileAdminOpen(false);
+                  }}
                   className="p-2"
                 >
                   <X size={24} />
@@ -295,7 +305,10 @@ const Header = () => {
                     <NavLink
                       key={link.to}
                       to={link.to}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsMobileAdminOpen(false);
+                      }}
                       className={`
                         flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors
                         ${isActive
@@ -310,16 +323,48 @@ const Header = () => {
                   );
                 })}
 
-                {/* Admin Link in Mobile */}
+                {/* Admin Section in Mobile */}
                 {user?.role === 'admin' && (
-                  <NavLink
-                    to="/admin"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center space-x-3 px-3 py-3 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
-                  >
-                    <Shield size={18} />
-                    <span>Admin Dashboard</span>
-                  </NavLink>
+                  <div className="pt-2">
+                    <button
+                      onClick={toggleMobileAdmin}
+                      className="flex items-center justify-between w-full px-3 py-3 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Shield size={18} />
+                        <span className="font-medium">Admin</span>
+                      </div>
+                      <ChevronRight 
+                        size={16} 
+                        className={`transition-transform ${isMobileAdminOpen ? 'rotate-90' : ''}`} 
+                      />
+                    </button>
+                    
+                    {isMobileAdminOpen && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {adminLinks.map((link) => (
+                          <NavLink
+                            key={link.to}
+                            to={link.to}
+                            onClick={() => {
+                              setIsMobileMenuOpen(false);
+                              setIsMobileAdminOpen(false);
+                            }}
+                            className={`
+                              flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors
+                              ${location.pathname === link.to
+                                ? 'bg-gradient-to-r from-amber-500/20 to-purple-600/20 text-amber-600 dark:text-amber-400'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                              }
+                            `}
+                          >
+                            {link.icon}
+                            <span className="text-sm">{link.label}</span>
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <div className="pt-4">
@@ -340,14 +385,20 @@ const Header = () => {
                   <div className="space-y-3">
                     <NavLink
                       to="/login"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsMobileAdminOpen(false);
+                      }}
                       className="block px-4 py-3 text-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                     >
                       Login
                     </NavLink>
                     <NavLink
                       to="/register"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsMobileAdminOpen(false);
+                      }}
                       className="block px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white text-center rounded-lg font-medium hover:shadow-lg hover:shadow-amber-500/25 transition-all"
                     >
                       Get Started

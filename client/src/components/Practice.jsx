@@ -30,7 +30,7 @@ import {
   ArrowLeft,
   Trophy,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from "lucide-react";
 
 const LANGUAGE_MAP = {
@@ -111,7 +111,7 @@ const Practice = () => {
 
   const [problem, setProblem] = useState(null);
   const [consoleOutput, setConsoleOutput] = useState(
-    "🚀 Practice Arena Ready - Write your solution and test it!"
+    "🚀 Practice Arena Ready - Write your solution and test it!",
   );
   const [selectedLanguage, setSelectedLanguage] = useState("JavaScript");
   const [code, setCode] = useState(CODE_TEMPLATES.JavaScript);
@@ -217,7 +217,7 @@ const Practice = () => {
       setConsoleOutput(out);
     } catch (err) {
       setConsoleOutput(
-        `❌ Error: ${err?.response?.data?.message || "Execution failed"}`
+        `❌ Error: ${err?.response?.data?.message || "Execution failed"}`,
       );
     }
   };
@@ -244,7 +244,7 @@ const Practice = () => {
         // Show celebration
         setTimeout(() => {
           setConsoleOutput(
-            (prev) => prev + "\n✨ Great job! Try another problem!"
+            (prev) => prev + "\n✨ Great job! Try another problem!",
           );
         }, 500);
       } else {
@@ -268,7 +268,7 @@ const Practice = () => {
       setConsoleOutput(
         `❌ Submission failed: ${
           err?.response?.data?.message || "Unknown error"
-        }`
+        }`,
       );
     }
   };
@@ -384,24 +384,6 @@ const Practice = () => {
                       Rating: {problem.rating || 1200}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <BarChart3
-                      size={14}
-                      className="text-gray-500 dark:text-gray-400"
-                    />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {successRate}% Success Rate
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Award
-                      size={14}
-                      className="text-gray-500 dark:text-gray-400"
-                    />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {problem.points || 100} points
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -428,30 +410,6 @@ const Practice = () => {
           <div className="lg:w-2/5 flex flex-col">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex-1">
               {/* Problem Tabs */}
-              <div className="flex border-b border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => setActiveTab("problem")}
-                  className={`px-6 py-3 font-medium transition-colors flex items-center gap-2 ${
-                    activeTab === "problem"
-                      ? "text-amber-600 dark:text-amber-400 border-b-2 border-amber-500"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                  }`}
-                >
-                  <Code size={16} />
-                  Problem
-                </button>
-                <button
-                  onClick={() => setActiveTab("editor")}
-                  className={`px-6 py-3 font-medium transition-colors flex items-center gap-2 ${
-                    activeTab === "editor"
-                      ? "text-amber-600 dark:text-amber-400 border-b-2 border-amber-500"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                  }`}
-                >
-                  <Terminal size={16} />
-                  Editor
-                </button>
-              </div>
 
               {/* Problem Content */}
               <div
@@ -467,10 +425,12 @@ const Practice = () => {
                       Description
                     </h3>
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-  <div className="text-gray-700 dark:text-gray-300">
-    <ReactMarkdown>{problem.description || "No description available."}</ReactMarkdown>
-  </div>
-</div>
+                      <div className="text-gray-700 dark:text-gray-300">
+                        <ReactMarkdown>
+                          {problem.description || "No description available."}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
                   </section>
 
                   {/* I/O Format */}
@@ -481,10 +441,12 @@ const Practice = () => {
                         Input Format
                       </h3>
                       <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-  <div className="text-gray-700 dark:text-gray-300">
-    <ReactMarkdown>{problem.input || "Standard input"}</ReactMarkdown>
-  </div>
-</div>
+                        <div className="text-gray-700 dark:text-gray-300">
+                          <ReactMarkdown>
+                            {problem.input || "Standard input"}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
                     </section>
 
                     <section>
@@ -493,10 +455,12 @@ const Practice = () => {
                         Output Format
                       </h3>
                       <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-  <div className="text-gray-700 dark:text-gray-300">
-    <ReactMarkdown>{problem.output || "Standard output"}</ReactMarkdown>
-  </div>
-</div>
+                        <div className="text-gray-700 dark:text-gray-300">
+                          <ReactMarkdown>
+                            {problem.output || "Standard output"}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
                     </section>
                   </div>
 
@@ -507,10 +471,12 @@ const Practice = () => {
                       Constraints
                     </h3>
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-  <div className="text-gray-700 dark:text-gray-300">
-    <ReactMarkdown>{problem.constraints || "No specific constraints."}</ReactMarkdown>
-  </div>
-</div>
+                      <div className="text-gray-700 dark:text-gray-300">
+                        <ReactMarkdown>
+                          {problem.constraints || "No specific constraints."}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
                   </section>
 
                   {/* Test Cases */}
@@ -560,8 +526,6 @@ const Practice = () => {
                         ))}
                       </section>
                     )}
-
-                  
                 </div>
               </div>
             </div>
@@ -730,8 +694,6 @@ const Practice = () => {
             </div>
 
             {/* Stats Footer */}
-            
-            
           </div>
         </div>
       </div>

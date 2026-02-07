@@ -31,6 +31,7 @@ const addProblem = async (req, res) => {
                 message: 'All fields are required'
             });
         }
+        console.log("Here");
 
         const newProblem = await Problem.create({
             title,
