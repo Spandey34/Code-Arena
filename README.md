@@ -60,5 +60,5 @@ Prerequisites:
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/yourusername/code-arena.git](https://github.com/yourusername/code-arena.git)
-cd code-arena
+git clone https://github.com/Spandey34/Code-Arena.git
+cd Code-Arena
