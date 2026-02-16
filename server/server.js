@@ -1,38 +1,27 @@
 require('dotenv').config();
-const express = require('express');
-const http = require('http');
-const cors = require('cors');
 const { connectDB } = require('./config/db');
-const { initSocketServer } = require('./services/socketService');
+const { app, server, io } = require('./services/socketService');
+const userRoute = require('./routes/userRoute');
+const problemRoute = require('./routes/problemRoute');
+const submissionRoute = require('./routes/submissionRoute');
+const matchRoute = require('./routes/matchRoute');
+const contestRoute = require('./routes/contestRoute');
+const editorialRoute = require('./routes/editorialRoute');
+const blogRoute = require('./routes/blogRoute');
+const adminRoute = require('./routes/adminRoute'); // Add this line
 
 // Connect to MongoDB
 connectDB();
 
-const app = express();
-const server = http.createServer(app);
-
-// Initialize Socket.IO
-initSocketServer(server);
-
-// Middleware
-app.use(cors());
-app.use(express.json()); // For parsing JSON request bodies
-
-// Import Routes
-const authRoutes = require('./routes/authRoutes');
-const gameRoutes = require('./routes/gameRoutes');
-const userRoutes = require('./routes/userRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const problemRoutes = require('./routes/problemRoutes');
-const constestRoutes = require('./routes/contestRoutes');
-
-// Use Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/game', gameRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/problems', problemRoutes);
-app.use('/api/contest', constestRoutes);
+//routes
+app.use('/api/user', userRoute);
+app.use('/api/problem', problemRoute);
+app.use('/api/submission', submissionRoute);
+app.use('/api/match', matchRoute);
+app.use('/api/contest', contestRoute);
+app.use('/api/editorial', editorialRoute);
+app.use('/api/blog', blogRoute);
+app.use('/api/admin', adminRoute); // Add this line
 
 // Simple route to check if the server is running
 app.get('/', (req, res) => {

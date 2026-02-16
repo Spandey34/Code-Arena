@@ -10,6 +10,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Initialize Docker
 let docker;
 if (os.platform() === 'win32') {
     docker = new Docker();
@@ -17,7 +18,7 @@ if (os.platform() === 'win32') {
     docker = new Docker({ socketPath: '/var/run/docker.sock' });
 }
 
-// Utility function to demultiplex the Docker stream
+// Utility: Demultiplex Docker Stream (Separate Stdout/Stderr)
 const demultiplexStream = (stream) => {
     return new Promise((resolve, reject) => {
         const MAX_OUTPUT_SIZE = 10 * 1024 * 1024; // 10 MB limit
@@ -27,19 +28,18 @@ const demultiplexStream = (stream) => {
 
         stream.on('readable', () => {
             let header;
-            while (header = stream.read(8)) {
+            while ((header = stream.read(8)) !== null) {
+                if (header.length < 8) break;
+                
                 const type = header.readUInt8(0);
                 const size = header.readUInt32BE(4);
 
-                // Check for invalid size or output exceeding the limit
                 if (size > MAX_OUTPUT_SIZE || currentSize + size > MAX_OUTPUT_SIZE) {
-                    // Stop reading and reject with an error
                     stream.destroy();
-                    return reject(new Error('Output size exceeded limit. This might indicate an infinite loop or excessive output.'));
+                    return reject(new Error('Output size exceeded limit.'));
                 }
 
                 const content = stream.read(size);
-
                 if (content) {
                     if (type === 1) { // stdout
                         stdout.push(content.toString('utf-8'));
@@ -58,43 +58,55 @@ const demultiplexStream = (stream) => {
             });
         });
 
-        stream.on('error', (err) => reject(new Error(err)));
+        stream.on('error', (err) => reject(err));
     });
 };
 
+// Main Execution Logic
 const executeCode = async (code, language, testCases) => {
     let tempDir;
+    
+    // Configuration Maps
+    const fileMap = {
+        'JavaScript': 'main.js',
+        'Python': 'main.py',
+        'Java': 'Main.java',
+        'C++': 'main.cpp',
+    };
+    
+    const containerImage = {
+        'JavaScript': 'node:18-alpine',
+        'Python': 'python:3.10-alpine',
+        'Java': 'openjdk:17-jdk-alpine',
+        'C++': 'gcc:latest',
+    };
+
+    const compileCmd = {
+        'JavaScript': null,
+        'Python': null,
+        'Java': 'javac /app/Main.java',
+        'C++': 'g++ /app/main.cpp -o /app/a.out',
+    };
+
+    const runCmd = {
+        'JavaScript': `node /app/${fileMap['JavaScript']}`,
+        'Python': `python /app/${fileMap['Python']}`,
+        'Java': 'java -cp /app Main',
+        'C++': '/app/a.out',
+    };
+
     try {
+        // 1. Setup Temporary Directory
         tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'code-arena-'));
-        const fileMap = {
-            'JavaScript': 'main.js',
-            'Python': 'main.py',
-            'Java': 'Main.java',
-            'C++': 'main.cpp',
-        };
         const fileName = fileMap[language];
-        const containerImage = {
-            'JavaScript': 'node:18-alpine',
-            'Python': 'python:3.10-alpine',
-            'Java': 'openjdk:17-jdk-alpine',
-            'C++': 'gcc:latest',
-        };
+        
+        if (!fileName || !containerImage[language]) {
+            throw new Error(`Unsupported language: ${language}`);
+        }
 
         await fs.writeFile(path.join(tempDir, fileName), code);
-        
-        const compileCmd = {
-            'JavaScript': null,
-            'Python': null,
-            'Java': `javac /app/Main.java`,
-            'C++': `g++ /app/main.cpp -o /app/a.out`,
-        };
-        const runCmd = {
-            'JavaScript': `node /app/${fileName}`,
-            'Python': `python /app/${fileName}`,
-            'Java': `java -cp /app Main`,
-            'C++': `/app/a.out`,
-        };
 
+        // 2. Compilation Step (if required)
         if (compileCmd[language]) {
             let compContainer;
             try {
@@ -104,33 +116,42 @@ const executeCode = async (code, language, testCases) => {
                     Cmd: ['sh', '-c', compileCmd[language]],
                     HostConfig: {
                         Binds: [`${tempDir}:/app`],
-                        NetworkMode: 'none',
-                        Memory: 256 * 1024 * 1024,
-                        CpuPeriod: 100000,
-                        CpuQuota: 50000,
+                        NetworkMode: 'none', // Security: No internet
+                        Memory: 512 * 1024 * 1024,
                     },
                     AttachStdout: true,
                     AttachStderr: true,
                 });
-                
+
                 await compContainer.start();
+                
+                // Get logs for compilation errors
+                const logsStream = await compContainer.logs({ stdout: true, stderr: true, follow: true });
+                const { error: compileErr } = await demultiplexStream(logsStream);
+                
                 const waitData = await compContainer.wait();
 
                 if (waitData.StatusCode !== 0) {
-                    const logs = await compContainer.logs({ stdout: true, stderr: true, follow: false });
-                    const { error } = await demultiplexStream(logs);
-                    return { status: 'compile-error', message: error, testResults: [] };
+                    return { 
+                        status: 'success', // Technically success because we handled it, but result is error
+                        testResults: [], 
+                        message: `Compilation Error: ${compileErr || 'Unknown error'}`
+                    };
                 }
             } finally {
                 if (compContainer) {
-                    await compContainer.remove({ force: true });
+                    await compContainer.remove({ force: true }).catch(() => {});
                 }
             }
         }
-        
 
+        // 3. Execution Step (Run Test Cases)
         const testResults = [];
+
         for (const test of testCases) {
+            let execContainer;
+            let timeoutId;
+
             let executionResult = {
                 input: test.input,
                 passed: false,
@@ -139,115 +160,98 @@ const executeCode = async (code, language, testCases) => {
                 error: null
             };
 
-            const inputFilePath = path.join(tempDir, 'input.txt');
-            await fs.writeFile(inputFilePath, test.input);
-
-            let isTLE = false;
-            const timeoutPromise = new Promise(resolve => setTimeout(() => {
-                isTLE = true;
-                resolve();
-            }, 5000));
-            
-
- const execPromise = new Promise((resolve, reject) => {
-    (async () => {
-        let execContainer;
-        let logsStream;
-
-        try {
-            execContainer = await docker.createContainer({
-                Image: containerImage[language],
-                Tty: false,
-                Cmd: ['sh', '-c', `${runCmd[language]} < /app/input.txt`],
-                HostConfig: {
-                    Binds: [`${tempDir}:/app`],
-                    NetworkMode: 'none',
-                    Memory: 256 * 1024 * 1024,
-                    CpuPeriod: 100000,
-                    CpuQuota: 50000,
-                },
-                AttachStdout: true,
-                AttachStderr: true,
-            });
-
-            await execContainer.start();
-
-            logsStream = await execContainer.logs({
-                stdout: true,
-                stderr: true,
-                follow: true,
-            });
-
-            const { output, error } = await demultiplexStream(logsStream);
-            const waitData = await execContainer.wait();
-
-            if (waitData.StatusCode !== 0) {
-                throw new Error(error || 'Runtime error');   // 🔥 DO NOT reject here
-            }
-
-            executionResult.output = output.trim();
-            if (output.trim() === test.output.trim()) {
-                executionResult.passed = true;
-            }
-
-            resolve(executionResult);
-
-        } catch (err) {
-            console.log("error occurred:", err.message);
-            reject(err);
-        } finally {
-            // 🔥 close log stream before removing container
-            if (logsStream) {
-                logsStream.destroy();
-            }
-
-            if (execContainer) {
-                try {
-                    await execContainer.remove({ force: true });
-                } catch (e) {
-                    console.warn("Container cleanup failed:", e.message);
-                }
-            }
-        }
-    })();
-});
-
-
-
             try {
-                const finalResult = await Promise.race([execPromise, timeoutPromise]);
-                if (isTLE) {
-                    executionResult.error = "Time Limit Exceeded";
-                    testResults.push(executionResult);
-                } else {
-                    testResults.push(finalResult);
+                // Write Input File
+                await fs.writeFile(path.join(tempDir, 'input.txt'), test.input);
+
+                // Create Container
+                execContainer = await docker.createContainer({
+                    Image: containerImage[language],
+                    Tty: false,
+                    Cmd: ['sh', '-c', `${runCmd[language]} < /app/input.txt`],
+                    HostConfig: {
+                        Binds: [`${tempDir}:/app`],
+                        NetworkMode: 'none',
+                        Memory: 256 * 1024 * 1024, // 256MB Limit
+                        CpuPeriod: 100000,
+                        CpuQuota: 50000, // 0.5 CPU
+                    },
+                    AttachStdout: true,
+                    AttachStderr: true,
+                });
+
+                await execContainer.start();
+
+                // Define the Execution Promise
+                const containerExecution = async () => {
+                    const logsStream = await execContainer.logs({ stdout: true, stderr: true, follow: true });
+                    const { output, error } = await demultiplexStream(logsStream);
+                    const waitData = await execContainer.wait();
+                    
+                    if (waitData.StatusCode !== 0) {
+                        throw new Error(error || 'Runtime Error');
+                    }
+                    return output.trim();
+                };
+
+                // Define the Timeout Promise
+                const timeoutPromise = new Promise((_, reject) => {
+                    timeoutId = setTimeout(() => {
+                        reject(new Error('Time Limit Exceeded'));
+                    }, 5000); // 5 Seconds Timeout
+                });
+
+                // Race: Execution vs Timeout
+                const output = await Promise.race([containerExecution(), timeoutPromise]);
+
+                executionResult.output = output;
+                if (output === test.output.trim()) {
+                    executionResult.passed = true;
                 }
-            } catch (error) {
-                executionResult.error = error.message;
-                testResults.push(executionResult);
+
+            } catch (err) {
+                executionResult.error = err.message;
+            } finally {
+                // Cleanup specific to this test case
+                if (timeoutId) clearTimeout(timeoutId);
+                if (execContainer) {
+                    await execContainer.remove({ force: true }).catch(() => {});
+                }
             }
+            
+            testResults.push(executionResult);
         }
-        // console.log(testResults)
+
         return { status: 'success', testResults };
 
     } catch (error) {
-       // 
-        const message = error.message.includes('No such image') ? 'Required Docker image not found.' : 'An unexpected error occurred.';
-        return { status: 'error', message, testResults: [] };
+        console.error("System Error:", error);
+        return { 
+            status: 'error', 
+            message: error.message.includes('No such image') ? 'Docker image missing' : error.message, 
+            testResults: [] 
+        };
     } finally {
+        // Global Cleanup (Remove temp directory)
         if (tempDir) {
-            await fs.rm(tempDir, { recursive: true, force: true });
+            await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
         }
     }
 };
 
+// API Endpoint
 app.post('/execute', async (req, res) => {
     const { code, language, testCases } = req.body;
+    
+    if (!code || !language || !testCases) {
+        return res.status(400).json({ status: 'error', message: 'Missing required fields' });
+    }
+
     const result = await executeCode(code, language, testCases);
     res.json(result);
 });
 
-const PORT = 6000;
+const PORT = process.env.PORT || 6000;
 app.listen(PORT, () => {
     console.log(`Code Execution Service listening on port ${PORT}`);
 });

@@ -1,69 +1,165 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, AuthContext } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext'; // Import ThemeProvider
-import Header from './components/Header';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import MatchmakingPage from './pages/MatchmakingPage';
-import GamePage from './pages/GamePage';
-import PracticePage from './pages/PracticePage';
-import LeaderboardPage from './pages/LeaderboardPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import AdminProblems from './pages/Adminproblem';
-import Practice from './components/Practice';
-import CreateContest from './pages/AdminContestCreatePage';
-import AdminContestshistory from './pages/AdmincontestHistorypage';
-import UserContests from './pages/Usercontest/ContestHistory';
-import ContestDetails from './pages/Usercontest/ParticularContest';
-import ContestSolve from './components/ContestPractice';
-import ContestScoreboard from './pages/Usercontest/Scoreboard';
+import { AuthProvider } from './contexts/AuthContext';
+import { SocketProvider } from './contexts/SocketContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import ProtectedRoute from './shared/components/ProtectedRoute';
+import Layout from './shared/components/Layout';
+import Navbar from './user/components/Navbar';
+import Footer from './user/components/Footer';
 
-const PrivateRoute = ({ children }) => {
-  const { user } = React.useContext(AuthContext);
-  return user ? children : <LoginPage />;
-};
-
-const RegisterRoute = ({ children }) => {
-  const { user } = React.useContext(AuthContext);
-  return user ? children : <RegisterPage />;
-};
-
-const AdminRoute = ({ children }) => {
-  const { user } = React.useContext(AuthContext);
-  return user && user.role === 'admin' ? children : <Navigate to="/" />;
-};
+// User Pages
+import Home from './user/pages/Home';
+import Login from './user/pages/Login';
+import Register from './user/pages/Register';
+import ProblemList from './user/pages/Practice/ProblemList';
+import ProblemDetail from './user/pages/Practice/ProblemDetail';
+import ProblemEditor from './user/pages/Practice/ProblemEditor';
+import ContestList from './user/pages/Contests/ContestList';
+import ContestDetail from './user/pages/Contests/ContestDetail';
+import ContestEditor from './user/pages/Contests/ContestEditor';
+import ContestStandings from './user/pages/Contests/ContestStandings';
+import FindMatch from './user/pages/Match/FindMatch';
+import MatchRoom from './user/pages/Match/MatchRoom';
+import MatchHistory from './user/pages/Match/MatchHistory';
+import Leaderboard from './user/pages/Leaderboard';
+import Submissions from './user/pages/Submissions';
+import BlogList from './user/pages/Blogs/BlogList';
+import BlogDetail from './user/pages/Blogs/BlogDetail';
+import CreateBlog from './user/pages/Blogs/CreateBlog';
+import EditorialList from './user/pages/Editorials/EditorialList';
+import CreateEditorial from './user/pages/Editorials/CreateEditorial';
+import ContestSubmissions from './user/pages/Contests/ContestSubmissions';
 
 const App = () => {
   return (
     <Router>
-      <ThemeProvider> {/* Wrap everything with ThemeProvider */}
-        <AuthProvider>
-          <Header />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<PrivateRoute><HomePage/></PrivateRoute>} />
-            <Route path="/register" element={<RegisterRoute><HomePage/></RegisterRoute>} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
+      <AuthProvider>
+        <SocketProvider>
+          <ThemeProvider>
+            <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+              <Navbar />
+              <main className="flex-grow">
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <Home />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/practice" element={
+                    <ProtectedRoute>
+                      <ProblemList />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/practice/problem/:id" element={
+                    <ProtectedRoute>
+                      <ProblemDetail />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/practice/editor" element={
+                    <ProtectedRoute>
+                      <ProblemEditor />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/contests" element={
+                    <ProtectedRoute>
+                      <ContestList />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/contests/:id" element={
+                    <ProtectedRoute>
+                      <ContestDetail />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/contests/:id/standings" element={
+                    <ProtectedRoute>
+                      <ContestStandings />
+                    </ProtectedRoute>
+                  } />
 
-            <Route path="/matchmaking" element={<PrivateRoute><MatchmakingPage /></PrivateRoute>} />
-            <Route path="/game/:gameId" element={<PrivateRoute><GamePage /></PrivateRoute>} />
-            <Route path="/practice" element={<PrivateRoute><PracticePage /></PrivateRoute>} />
-            <Route path="/practice/:problemId" element={<PrivateRoute><Practice /></PrivateRoute>} />
+                  <Route path="/contests/:id/submissions" element={
+                    <ProtectedRoute>
+                      <ContestSubmissions />
+                    </ProtectedRoute>
+                  } />
 
-             <Route path="/contests" element={<PrivateRoute><UserContests/></PrivateRoute>} />
-             <Route path="/contest/:id" element={<PrivateRoute><ContestDetails/></PrivateRoute>} />
-             <Route path="/contest/:contestId/problem/:problemId" element={<PrivateRoute><ContestSolve/></PrivateRoute>} />
-             <Route path="/contest/:contestId/scoreboard" element={<PrivateRoute><ContestScoreboard/></PrivateRoute>} />
-            
-            <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
-            <Route path="admin/problems" element={<AdminRoute><AdminProblems/></AdminRoute>} />
-            <Route path="admin/contest/create" element={<AdminRoute><CreateContest/></AdminRoute>} />
-            <Route path="admin/contest/history" element={<AdminRoute><AdminContestshistory/></AdminRoute>} />
-          </Routes>
-        </AuthProvider>
-      </ThemeProvider>
+                  <Route path="/contests/:id/problem/:problemId" element={
+                    <ProtectedRoute>
+                      <ContestEditor />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/match" element={
+                    <ProtectedRoute>
+                      <FindMatch />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/match/:id" element={
+                    <ProtectedRoute>
+                      <MatchRoom />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/match-history" element={
+                    <ProtectedRoute>
+                      <MatchHistory />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/leaderboard" element={
+                    <ProtectedRoute>
+                      <Leaderboard />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/submissions" element={
+                    <ProtectedRoute>
+                      <Submissions />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/blogs" element={
+                    <ProtectedRoute>
+                      <BlogList />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/blogs/new" element={
+                    <ProtectedRoute>
+                      <CreateBlog />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/blogs/:id" element={
+                    <ProtectedRoute>
+                      <BlogDetail />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/editorials/:problemId/new" element={
+                    <ProtectedRoute>
+                      <CreateEditorial />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </main>
+              <Footer />
+            </div>
+          </ThemeProvider>
+        </SocketProvider>
+      </AuthProvider>
     </Router>
   );
 };

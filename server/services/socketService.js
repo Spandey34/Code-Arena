@@ -1,118 +1,86 @@
 const { Server } = require('socket.io');
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const Redis = require('ioredis');
+const { onlineUsers, waitingQueue } = require('./store');
+const cookieParser = require('cookie-parser');
 
-//let waitingUser = null;
-const waitingQueue = new Map();  // socketId → { userId, gameId }
+const app = express();
+const server = http.createServer(app);
 
-let io;
-const gameSockets = {}; 
+app.use(cors({
+    origin: "http://localhost:5173", 
+    credentials: true,               
+    methods: ["GET", "POST", "PUT", "DELETE"]
+}));
+app.use(cookieParser());
+app.use(express.json());
 
-const initSocketServer = (server) => {
-    io = new Server(server, {
-        cors: {
-            origin: '*',
-            methods: ['GET', 'POST']
-        }
-    });
-
-    io.on('connection', (socket) => {
-        console.log(`User connected: ${socket.id}`);
-        io.emit('activeUsersUpdate', io.engine.clientsCount);
-
-
-        socket.on("leaveQueue", () => {
-            waitingQueue.delete(socket.id);
-
-            for (let gameId in gameSockets) {
-                const game = gameSockets[gameId];
-                if (game.player1 === socket.id || game.player2 === socket.id) {
-                delete gameSockets[gameId];
-                }
-            }
-            });
-
-            socket.on('disconnect', () => {
-            console.log(`User disconnected: ${socket.id}`);
-            io.emit('activeUsersUpdate', io.engine.clientsCount);
-            
-        });
-
-
-        // socket.on('joinQueue', (data) => {
-        //     if (waitingUser) {
-        //         const opponentSocket = io.sockets.sockets.get(waitingUser.socketId);
-        //         const gameId = waitingUser.gameId;
-
-        //         socket.emit('matchFound', { gameId, opponentId: waitingUser.userId });
-        //         if (opponentSocket) {
-        //             opponentSocket.emit('matchFound', { gameId, opponentId: data.userId });
-        //         }
-
-        //         gameSockets[gameId] = {
-        //             player1: waitingUser.socketId,
-        //             player2: socket.id
-        //         };
-                
-        //         waitingUser = null;
-        //     } else {
-        //         waitingUser = { 
-        //             socketId: socket.id, 
-        //             userId: data.userId, 
-        //             gameId: data.gameId
-        //         };
-        //         socket.emit('waitingForOpponent', { message: 'Waiting for an opponent...' });
-        //     }
-        // });
-
-      socket.on("joinQueue", ({ userId, gameId }) => {
-
-  // Prevent user from joining twice
-  if (waitingQueue.has(socket.id)) return;
-
-  // Try to find any waiting opponent
-  for (let [oppSocketId, opponent] of waitingQueue) {
-
-                if (opponent.userId !== userId) {
-                const opponentSocket = io.sockets.sockets.get(oppSocketId);
-
-                if (!opponentSocket) {
-                    waitingQueue.delete(oppSocketId);
-                    continue;
-                }
-
-                // Match found
-                socket.emit("matchFound", { gameId, opponentId: opponent.userId });
-                opponentSocket.emit("matchFound", { gameId, opponentId: userId });
-
-                gameSockets[gameId] = {
-                    player1: oppSocketId,
-                    player2: socket.id
-                };
-
-                waitingQueue.delete(oppSocketId);
-                return;
-                }
-  }
-
-  // No opponent → add to queue
-  waitingQueue.set(socket.id, { userId, gameId });
-  socket.emit("waitingForOpponent", { message: "Waiting for opponent..." });
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+        credentials: true
+    },
 });
 
+// Redis Subscriber for Worker Updates
+const redisSubscriber = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD
+});
 
-        socket.on('submissionStatus', (data) => {
-            const { gameId, userId, status } = data;
-            const sockets = gameSockets[gameId];
+redisSubscriber.subscribe('code-updates', (err, count) => {
+    if (err) console.error("Failed to subscribe: %s", err.message);
+    else console.log(`Subscribed to ${count} Redis channel(s).`);
+});
 
-            if (sockets) {
-                const opponentSocketId = sockets.player1 === socket.id ? sockets.player2 : sockets.player1;
-                const opponentSocket = io.sockets.sockets.get(opponentSocketId);
-                
-                if (opponentSocket) {
-                    opponentSocket.emit('opponentSubmitted', { userId, status });
-                }
+redisSubscriber.on('message', (channel, message) => {
+    if (channel === 'code-updates') {
+        try {
+            const { userId, event, data } = JSON.parse(message);
+            const socketId = onlineUsers.get(userId);
+            if (socketId) {
+                io.to(socketId).emit(event, data);
+                console.log(`Relayed ${event} to user ${userId}`);
             }
-        });
-    });
-};
+        } catch (error) {
+            console.error("Error processing Redis message:", error);
+        }
+    }
+});
 
-module.exports = { initSocketServer };
+io.on("connection", (socket) => {
+    console.log("User connected:", socket.id);
+    io.emit('onlineUsers', io.engine.clientsCount);
+
+    socket.on("login", (userId) => {
+        socket.userId = userId; 
+        onlineUsers.set(userId, socket.id);
+        io.emit('onlineUsers', io.engine.clientsCount);
+    });
+
+    socket.on("cancelMatch",(userId)=>{
+        waitingQueue.delete(socket.id);
+    })
+
+    socket.on("logout", (userId) => {
+        onlineUsers.delete(userId);
+        waitingQueue.delete(socket.id);
+        io.emit('onlineUsers', io.engine.clientsCount);
+    });
+
+    socket.on("disconnect", () => {
+        waitingQueue.delete(socket.id);
+        io.emit('onlineUsers', io.engine.clientsCount);
+        if (socket.userId) {
+            if (onlineUsers.get(socket.userId) === socket.id) {
+                onlineUsers.delete(socket.userId);
+            }
+        }
+    });
+});
+
+module.exports = { app, server, io, onlineUsers };
