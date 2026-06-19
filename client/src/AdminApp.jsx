@@ -29,13 +29,13 @@ import CreateBlog from "./admin/pages/Blogs/CreateBlog";
 import BlogList from "./admin/pages/Blogs/BlogList";
 import BlogManagement from "./admin/pages/Blogs/BlogManagement";
 import Login from "./user/pages/Login";
+import { SocketProvider } from "./contexts/SocketContext";
 
 const AdminApp = () => {
   return (
    
-      
-
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+       <SocketProvider>
+               <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
               <AdminLayout>
                 
                 <Routes>
@@ -81,6 +81,9 @@ const AdminApp = () => {
                 </Routes>
               </AdminLayout>
           </div>
+        </SocketProvider>
+
+     
 
   );
 };

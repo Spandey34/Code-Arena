@@ -34,7 +34,8 @@ import ContestSubmissions from './user/pages/Contests/ContestSubmissions';
 const App = () => {
   return (
     
-            <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+         <SocketProvider>
+               <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
               <Navbar />
               <main className="flex-grow">
                 <Routes>
@@ -154,6 +155,8 @@ const App = () => {
               </main>
               <Footer />
             </div>
+              </SocketProvider>
+            
 
   );
 };

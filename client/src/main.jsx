@@ -6,6 +6,7 @@ import './index.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { BrowserRouter } from 'react-router-dom';
+import { SocketProvider } from './contexts/SocketContext';
 
 const Root = () => {
   // Get the current path to decide which app to render
@@ -23,8 +24,9 @@ const Root = () => {
 ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
   <AuthProvider>
-    <ThemeProvider>
-      <Root />
+    <ThemeProvider> 
+        <Root />
+ 
     </ThemeProvider>
   </AuthProvider>
 </BrowserRouter>

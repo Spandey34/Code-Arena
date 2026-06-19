@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -11,7 +11,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -70,7 +70,7 @@ const Navbar = () => {
               onClick={toggleTheme}
               className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700"
             >
-              {theme === 'dark' ? '🌙' : '☀️'}
+              {theme === "dark" ? "🌙" : "☀️"}
             </button>
 
             {/* User Dropdown */}
@@ -85,7 +85,7 @@ const Navbar = () => {
                     {user.rating}
                   </span>
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg hidden group-hover:block">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg hidden group-hover:block before:content-[''] before:absolute before:-top-2 before:left-0 before:w-full before:h-2">
                   <Link
                     to="/profile"
                     className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -115,11 +115,26 @@ const Navbar = () => {
             className="md:hidden text-gray-700 dark:text-gray-300"
             onClick={() => setMenuOpen(!menuOpen)}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               {menuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               )}
             </svg>
           </button>
@@ -178,7 +193,9 @@ const Navbar = () => {
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">
                         {user.username[0].toUpperCase()}
                       </div>
-                      <span className="text-gray-700 dark:text-gray-300">{user.username}</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {user.username}
+                      </span>
                     </div>
                     <button
                       onClick={handleLogout}
