@@ -29,9 +29,12 @@ const io = new Server(server, {
 const redisSubscriber = new Redis({
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD
+    password: process.env.REDIS_PASSWORD || '',
+    maxRetriesPerRequest: null,
 });
-
+redisSubscriber.on('error', (err) => {
+  console.error('Main Server Redis Error:', err.message);
+});
 redisSubscriber.subscribe('code-updates', (err, count) => {
     if (err) console.error("Failed to subscribe: %s", err.message);
     else console.log(`Subscribed to ${count} Redis channel(s).`);

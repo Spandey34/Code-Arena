@@ -13,8 +13,10 @@ const findMatch = async (req, res) => {
     const userRating = req.user.rating;
     const socketId = onlineUsers.get(userId);
     try {
-        if(waitingQueue.has(userId))
+        if(waitingQueue.has(socketId))
+
         {
+            
             return res.status(500).json({ message: "Already In Queue" });
         }
         if (waitingQueue.size > 0) {
@@ -24,7 +26,7 @@ const findMatch = async (req, res) => {
             );
             const socket = io.sockets.sockets.get(socketId);
 
-            if (!results) {
+            if (results.length === 0) {
                 waitingQueue.set(socketId, { rating: userRating, userId: userId });
                 if(socket)
                 {

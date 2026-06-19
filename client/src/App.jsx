@@ -33,10 +33,7 @@ import ContestSubmissions from './user/pages/Contests/ContestSubmissions';
 
 const App = () => {
   return (
-    <Router>
-      <AuthProvider>
-        <SocketProvider>
-          <ThemeProvider>
+    
             <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
               <Navbar />
               <main className="flex-grow">
@@ -157,10 +154,7 @@ const App = () => {
               </main>
               <Footer />
             </div>
-          </ThemeProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </Router>
+
   );
 };
 

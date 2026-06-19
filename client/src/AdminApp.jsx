@@ -28,16 +28,19 @@ import MatchHistory from "./admin/pages/Matches/MatchHistory";
 import CreateBlog from "./admin/pages/Blogs/CreateBlog";
 import BlogList from "./admin/pages/Blogs/BlogList";
 import BlogManagement from "./admin/pages/Blogs/BlogManagement";
+import Login from "./user/pages/Login";
 
 const AdminApp = () => {
   return (
-    <Router>
-      <AuthProvider>
-        <ThemeProvider>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+   
+      
+
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
               <AdminLayout>
+                
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
+                  
 
                   {/* Problems */}
                   <Route path="/problems" element={<ProblemList />} />
@@ -78,9 +81,7 @@ const AdminApp = () => {
                 </Routes>
               </AdminLayout>
           </div>
-        </ThemeProvider>
-      </AuthProvider>
-    </Router>
+
   );
 };
 

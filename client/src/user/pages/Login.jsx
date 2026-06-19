@@ -17,10 +17,11 @@ const Login = () => {
 
     try {
       const result = await login(email, password);
+      console.log(result);
       if (result.success) {
         // Check if user is admin and redirect accordingly
         if (result.data.user.isAdmin) {
-          navigate('/admin');
+          navigate('/');
         } else {
           navigate('/');
         }
