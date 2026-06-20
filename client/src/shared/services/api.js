@@ -113,7 +113,16 @@ export const editorialAPI = {
 // Blog APIs
 export const blogAPI = {
   create: (data) => API.post('/blog/add', data),
-  getAll: () => API.get('/blog'),
+  //getAll: () => API.get('/blog'),
+  getAll: async (cursor = null,limit=10) => {
+    const response = await API.get(
+        cursor
+            ? `/blog?cursor=${cursor}&limit=${limit}`
+            : `/blog?limit=${limit}`
+    );
+     //console.log("hi:",response)
+    return response;
+},
   getById: (id) => API.get(`/blog/${id}`),
   update: (id, data) => API.post(`/blog/update/${id}`, data),
   delete: (id) => API.post(`/blog/delete/${id}`),

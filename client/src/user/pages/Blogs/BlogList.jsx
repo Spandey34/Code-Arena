@@ -2,77 +2,136 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { blogAPI } from '../../../shared/services/api';
 import { formatDate, timeAgo } from '../../../shared/utils/helpers';
+import { useRef } from 'react';
 
 const BlogList = () => {
   const [blogs, setBlogs] = useState([]);
-  const [filteredBlogs, setFilteredBlogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  //const [filteredBlogs, setFilteredBlogs] = useState([]);
+ // const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
+  
+const [loading, setLoading] = useState(true);
+const [loadingMore, setLoadingMore] = useState(false);
+const [cursor, setCursor] = useState(null);
+const [hasMore, setHasMore] = useState(true);
+
+const observerRef = useRef();
+
   useEffect(() => {
-    fetchBlogs();
+    fetchBlogs(true);
   }, []);
 
+  // useEffect(() => {
+  //   filterAndSortBlogs();
+  // }, [searchTerm, sortBy, blogs]);
+
   useEffect(() => {
-    filterAndSortBlogs();
-  }, [searchTerm, sortBy, blogs]);
-
-  const fetchBlogs = async () => {
-    try {
-      const response = await blogAPI.getAll();
-      setBlogs(response);
-      setFilteredBlogs(response);
-    } catch (error) {
-      console.error('Failed to fetch blogs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterAndSortBlogs = () => {
-    let filtered = blogs;
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(blog =>
-        blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.userId?.username?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Sort blogs
-    if(filtered)
-    {
-        filtered = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case 'oldest':
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        case 'popular':
-          return (b.upVotes?.length - b.downVotes?.length) - (a.upVotes?.length - a.downVotes?.length);
-        case 'most-votes':
-          return (b.upVotes?.length + b.downVotes?.length) - (a.upVotes?.length + a.downVotes?.length);
-        default:
-          return 0;
+  const observer = new IntersectionObserver(
+    entries => {
+      if (
+        entries[0].isIntersecting &&
+        hasMore &&
+        !loadingMore
+      ) {
+        fetchBlogs(false);
       }
-    });
+    },
+    {
+      threshold: 1
     }
-    
+  );
 
-    setFilteredBlogs(filtered);
-  };
+  if (observerRef.current) {
+    observer.observe(observerRef.current);
+  }
 
-  const handleVote = async (blogId, voteType) => {
-    try {
-      await blogAPI.vote(blogId, voteType);
-      fetchBlogs(); // Refresh blogs to update votes
-    } catch (error) {
-      console.error('Failed to vote:', error);
+  return () => observer.disconnect();
+
+}, [cursor, hasMore, loadingMore]);
+
+ const fetchBlogs = async (initial = false) => {
+  try {
+    if (initial) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
     }
-  };
+
+    const response = await blogAPI.getAll(initial ? null : cursor,4);
+    //console.log("Response:", response);
+
+    if (initial) {
+      setBlogs(response.blogs);
+    } else {
+      setBlogs(prev => [...prev, ...response.blogs]);
+    }
+
+    setCursor(response.nextCursor);
+    setHasMore(response.hasMore);
+
+  } catch (error) {
+    console.error(error);
+    console.log(error.response?.data);
+  } finally {
+    setLoading(false);
+    setLoadingMore(false);
+  }
+};
+
+ const displayedBlogs = [...blogs]
+  .filter(blog => {
+    if (!searchTerm) return true;
+
+    return (
+      blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.userId?.username?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  })
+  .sort((a, b) => {
+    switch (sortBy) {
+      case "newest":
+        return new Date(b.createdAt) - new Date(a.createdAt);
+
+      case "oldest":
+        return new Date(a.createdAt) - new Date(b.createdAt);
+
+      case "popular":
+        return b.voteScore - a.voteScore;
+
+      case "most-votes":
+        return (
+          (b.upVotes?.length + b.downVotes?.length) -
+          (a.upVotes?.length + a.downVotes?.length)
+        );
+
+      default:
+        return 0;
+    }
+  });
+
+const handleVote = async (blogId, voteType) => {
+  try {
+
+    await blogAPI.vote(blogId, voteType);
+
+    setBlogs(prev =>
+      prev.map(blog => {
+        if (blog._id !== blogId) return blog;
+
+        return {
+          ...blog,
+          userVoteStatus: voteType
+        };
+      })
+    );
+
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   if (loading) {
     return (
@@ -141,7 +200,7 @@ const BlogList = () => {
 
       {/* Blog Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBlogs?.length === 0 ? (
+        {displayedBlogs?.length === 0 ? (
           <div className="col-span-3 text-center py-12">
             <div className="text-5xl mb-4">📝</div>
             <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
@@ -158,7 +217,7 @@ const BlogList = () => {
             </Link>
           </div>
         ) : (
-          filteredBlogs?.map((blog) => (
+          displayedBlogs?.map((blog) => (
             <div
               key={blog._id}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
@@ -252,6 +311,14 @@ const BlogList = () => {
           ))
         )}
       </div>
+
+      <div ref={observerRef} className="flex justify-center py-8">
+
+  {loadingMore && (
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+  )}
+
+</div>
 
       {/* Popular Tags */}
       <div className="mt-12">

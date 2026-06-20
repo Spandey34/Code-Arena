@@ -63,22 +63,71 @@ const createBlog = async (req, res) => {
     }
 };
 
+// const getAllBlogs = async (req, res) => {
+//     try {
+//         const blogs = await Blog.find({})
+//             .populate('userId', 'username')
+//             .sort({ createdAt: -1 });
+
+//         const blogsWithStats = blogs.map(blog => {
+//             const doc = blog.toObject();
+//             doc.voteScore = blog.upVotes.length - blog.downVotes.length;
+//             doc.userVoteStatus = req.user ? getVoteStatus(blog, req.user._id) : 'none';
+//             return doc;
+//         });
+
+//         return res.status(200).json(blogsWithStats);
+//     } catch (error) {
+//         return res.status(500).json({ message: 'Server error fetching blogs' });
+//     }
+// };
+
 const getAllBlogs = async (req, res) => {
     try {
-        const blogs = await Blog.find({})
-            .populate('userId', 'username')
-            .sort({ createdAt: -1 });
+        const limit = parseInt(req.query.limit) || 3;
+        // const limit=16;
+        const cursor = req.query.cursor;
+       // console.log("limit:",limit)
+
+        let query = {};
+
+        if (cursor) {
+            query._id = { $lt: cursor };
+        }
+
+        const blogs = await Blog.find(query)
+            .populate("userId", "username")
+            .sort({ createdAt: -1 })
+            .limit(limit);
 
         const blogsWithStats = blogs.map(blog => {
             const doc = blog.toObject();
-            doc.voteScore = blog.upVotes.length - blog.downVotes.length;
-            doc.userVoteStatus = req.user ? getVoteStatus(blog, req.user._id) : 'none';
+
+            doc.voteScore =
+                blog.upVotes.length - blog.downVotes.length;
+
+            doc.userVoteStatus = req.user
+                ? getVoteStatus(blog, req.user._id)
+                : "none";
+
             return doc;
         });
 
-        return res.status(200).json(blogsWithStats);
+        const nextCursor =
+            blogs.length > 0
+                ? blogs[blogs.length - 1]._id
+                : null;
+
+        return res.status(200).json({
+            blogs: blogsWithStats,
+            nextCursor,
+            hasMore: blogs.length === limit
+        });
+
     } catch (error) {
-        return res.status(500).json({ message: 'Server error fetching blogs' });
+        return res.status(500).json({
+            message: "Server error fetching blogs"
+        });
     }
 };
 
