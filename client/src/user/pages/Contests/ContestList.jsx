@@ -141,6 +141,7 @@ const ContestList = () => {
           </div>
         ) : (
           filteredContests?.map((contest) => {
+            console.log(formatDate(contest.startTime))
             const status = getStatus(contest);
             return (
               <Link
