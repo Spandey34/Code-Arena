@@ -28,7 +28,7 @@ const MatchRoom = () => {
 
   // Editor State
   const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
+  const [language, setLanguage] = useState('Javascript');
   const [isProcessing, setIsProcessing] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState('');
   const [testResults, setTestResults] = useState(null);

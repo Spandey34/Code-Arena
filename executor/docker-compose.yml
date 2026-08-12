@@ -2,6 +2,6 @@
 services:
   redis:
     image: redis
-    container_name: code-arena-redis
+    container_name: code-arena-redis-princy
     ports:
       - "6379:6379"

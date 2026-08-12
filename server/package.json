@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js",
-    "start": "node server.js"
+    "dev": "concurrently \"nodemon server.js\" \"nodemon ./workers/submissionWorkers.js\"",
+    "start": "concurrently \"node server.js\" \"node ./workers/submissionWorkers.js\""
   },
   "keywords": [],
   "author": "",
@@ -17,6 +17,7 @@
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.67.3",
     "cloudinary": "^2.9.0",
+    "concurrently": "^10.0.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",

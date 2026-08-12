@@ -77,7 +77,8 @@ const executeCode = async (code, language, testCases) => {
     const containerImage = {
         'JavaScript': 'node:18-alpine',
         'Python': 'python:3.10-alpine',
-        'Java': 'openjdk:17-jdk-alpine',
+       //Java': 'openjdk:17-jdk-alpine',
+        'Java': 'eclipse-temurin:17-jdk-alpine',
         'C++': 'gcc:latest',
     };
 
@@ -86,6 +87,7 @@ const executeCode = async (code, language, testCases) => {
         'Python': null,
         'Java': 'javac /app/Main.java',
         'C++': 'g++ /app/main.cpp -o /app/a.out',
+
     };
 
     const runCmd = {
