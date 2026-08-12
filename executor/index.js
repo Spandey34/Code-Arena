@@ -18,6 +18,52 @@ if (os.platform() === 'win32') {
     docker = new Docker({ socketPath: '/var/run/docker.sock' });
 }
 
+// ---------------------------------------------------------------------------
+// Docker-outside-of-Docker path handling
+//
+// This executor talks to the HOST's Docker daemon via the mounted socket
+// (/var/run/docker.sock). That means any container it creates is a SIBLING
+// container, not a child of this one. Bind mount sources in HostConfig.Binds
+// are resolved by the HOST daemon against the HOST filesystem — NOT against
+// paths inside this executor container.
+//
+// So we keep two versions of every temp path:
+//   - CONTAINER path: where *this* process reads/writes files (os.tmpdir()-like)
+//   - HOST path: the same location as seen by the host, used only in Binds
+//
+// This requires docker-compose.yml to bind-mount a real host directory into
+// this container, e.g.:
+//
+//   executor:
+//     volumes:
+//       - /var/run/docker.sock:/var/run/docker.sock
+//       - ${PWD}/executor/workspaces:/workspaces
+//     environment:
+//       - HOST_WORKSPACES_PATH=${PWD}/executor/workspaces
+// ---------------------------------------------------------------------------
+
+const CONTAINER_WORKSPACES_PATH = process.env.CONTAINER_WORKSPACES_PATH || '/workspaces';
+const HOST_WORKSPACES_PATH = process.env.HOST_WORKSPACES_PATH; // required, no safe default
+
+if (!HOST_WORKSPACES_PATH) {
+    console.warn(
+        'WARNING: HOST_WORKSPACES_PATH is not set. Bind mounts into sandbox ' +
+        'containers will likely resolve to the wrong path on the host and ' +
+        'sandbox containers will see an empty /app. Set HOST_WORKSPACES_PATH ' +
+        'to the real host-side path that is mounted at ' + CONTAINER_WORKSPACES_PATH + '.'
+    );
+}
+
+const makeWorkspace = async () => {
+    const dirName = `code-arena-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const containerDir = path.join(CONTAINER_WORKSPACES_PATH, dirName);
+    const hostDir = path.join(HOST_WORKSPACES_PATH || CONTAINER_WORKSPACES_PATH, dirName);
+
+    await fs.mkdir(containerDir, { recursive: true });
+
+    return { containerDir, hostDir };
+};
+
 // Utility: Demultiplex Docker Stream (Separate Stdout/Stderr)
 const demultiplexStream = (stream) => {
     return new Promise((resolve, reject) => {
@@ -30,7 +76,7 @@ const demultiplexStream = (stream) => {
             let header;
             while ((header = stream.read(8)) !== null) {
                 if (header.length < 8) break;
-                
+
                 const type = header.readUInt8(0);
                 const size = header.readUInt32BE(4);
 
@@ -64,8 +110,9 @@ const demultiplexStream = (stream) => {
 
 // Main Execution Logic
 const executeCode = async (code, language, testCases) => {
-    let tempDir;
-    
+    let containerDir;
+    let hostDir;
+
     // Configuration Maps
     const fileMap = {
         'JavaScript': 'main.js',
@@ -73,11 +120,10 @@ const executeCode = async (code, language, testCases) => {
         'Java': 'Main.java',
         'C++': 'main.cpp',
     };
-    
+
     const containerImage = {
         'JavaScript': 'node:18-alpine',
         'Python': 'python:3.10-alpine',
-       //Java': 'openjdk:17-jdk-alpine',
         'Java': 'eclipse-temurin:17-jdk-alpine',
         'C++': 'gcc:latest',
     };
@@ -87,7 +133,6 @@ const executeCode = async (code, language, testCases) => {
         'Python': null,
         'Java': 'javac /app/Main.java',
         'C++': 'g++ /app/main.cpp -o /app/a.out',
-
     };
 
     const runCmd = {
@@ -98,15 +143,15 @@ const executeCode = async (code, language, testCases) => {
     };
 
     try {
-        // 1. Setup Temporary Directory
-        tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'code-arena-'));
+        // 1. Setup Workspace (container path for I/O, host path for Binds)
+        ({ containerDir, hostDir } = await makeWorkspace());
         const fileName = fileMap[language];
-        
+
         if (!fileName || !containerImage[language]) {
             throw new Error(`Unsupported language: ${language}`);
         }
 
-        await fs.writeFile(path.join(tempDir, fileName), code);
+        await fs.writeFile(path.join(containerDir, fileName), code);
 
         // 2. Compilation Step (if required)
         if (compileCmd[language]) {
@@ -117,7 +162,7 @@ const executeCode = async (code, language, testCases) => {
                     Tty: false,
                     Cmd: ['sh', '-c', compileCmd[language]],
                     HostConfig: {
-                        Binds: [`${tempDir}:/app`],
+                        Binds: [`${hostDir}:/app`],
                         NetworkMode: 'none', // Security: No internet
                         Memory: 512 * 1024 * 1024,
                     },
@@ -126,17 +171,17 @@ const executeCode = async (code, language, testCases) => {
                 });
 
                 await compContainer.start();
-                
+
                 // Get logs for compilation errors
                 const logsStream = await compContainer.logs({ stdout: true, stderr: true, follow: true });
                 const { error: compileErr } = await demultiplexStream(logsStream);
-                
+
                 const waitData = await compContainer.wait();
 
                 if (waitData.StatusCode !== 0) {
-                    return { 
+                    return {
                         status: 'success', // Technically success because we handled it, but result is error
-                        testResults: [], 
+                        testResults: [],
                         message: `Compilation Error: ${compileErr || 'Unknown error'}`
                     };
                 }
@@ -164,7 +209,7 @@ const executeCode = async (code, language, testCases) => {
 
             try {
                 // Write Input File
-                await fs.writeFile(path.join(tempDir, 'input.txt'), test.input);
+                await fs.writeFile(path.join(containerDir, 'input.txt'), test.input);
 
                 // Create Container
                 execContainer = await docker.createContainer({
@@ -172,7 +217,7 @@ const executeCode = async (code, language, testCases) => {
                     Tty: false,
                     Cmd: ['sh', '-c', `${runCmd[language]} < /app/input.txt`],
                     HostConfig: {
-                        Binds: [`${tempDir}:/app`],
+                        Binds: [`${hostDir}:/app`],
                         NetworkMode: 'none',
                         Memory: 256 * 1024 * 1024, // 256MB Limit
                         CpuPeriod: 100000,
@@ -189,7 +234,7 @@ const executeCode = async (code, language, testCases) => {
                     const logsStream = await execContainer.logs({ stdout: true, stderr: true, follow: true });
                     const { output, error } = await demultiplexStream(logsStream);
                     const waitData = await execContainer.wait();
-                    
+
                     if (waitData.StatusCode !== 0) {
                         throw new Error(error || 'Runtime Error');
                     }
@@ -220,7 +265,7 @@ const executeCode = async (code, language, testCases) => {
                     await execContainer.remove({ force: true }).catch(() => {});
                 }
             }
-            
+
             testResults.push(executionResult);
         }
 
@@ -228,15 +273,15 @@ const executeCode = async (code, language, testCases) => {
 
     } catch (error) {
         console.error("System Error:", error);
-        return { 
-            status: 'error', 
-            message: error.message.includes('No such image') ? 'Docker image missing' : error.message, 
-            testResults: [] 
+        return {
+            status: 'error',
+            message: error.message.includes('No such image') ? 'Docker image missing' : error.message,
+            testResults: []
         };
     } finally {
-        // Global Cleanup (Remove temp directory)
-        if (tempDir) {
-            await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+        // Global Cleanup (Remove workspace directory, container-side path)
+        if (containerDir) {
+            await fs.rm(containerDir, { recursive: true, force: true }).catch(() => {});
         }
     }
 };
@@ -244,7 +289,7 @@ const executeCode = async (code, language, testCases) => {
 // API Endpoint
 app.post('/execute', async (req, res) => {
     const { code, language, testCases } = req.body;
-    
+
     if (!code || !language || !testCases) {
         return res.status(400).json({ status: 'error', message: 'Missing required fields' });
     }
