@@ -5,6 +5,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: codearena-redis
+    restart: unless-stopped
 
     ports:
       - "6379:6379"
@@ -12,13 +13,13 @@ services:
     networks:
       - codearena-network
 
-
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
 
     container_name: codearena-server
+    restart: unless-stopped
 
     ports:
       - "5000:5000"
@@ -32,27 +33,27 @@ services:
     networks:
       - codearena-network
 
-
   executor:
-
     build:
       context: ./executor
       dockerfile: Dockerfile
 
     container_name: codearena-executor
+    restart: unless-stopped
 
     depends_on:
       - redis
 
     networks:
       - codearena-network
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${PWD}/executor/workspaces:/workspaces
+
     environment:
-    - HOST_WORKSPACES_PATH=${PWD}/executor/workspaces
+      - HOST_WORKSPACES_PATH=${PWD}/executor/workspaces
 
 networks:
-
   codearena-network:
     driver: bridge
