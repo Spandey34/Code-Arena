@@ -39,8 +39,6 @@ export const authAPI = {
   getUserDetails: (id) => API.get(`/user/info/${id}`),
   getLeaderboard: () => API.get('/user/leaderboard'),
   getStats: ()=> API.get('/user/stats'),
-  
-  // Admin user management (Note: These endpoints need to be added to your backend)
   updateUserRole: (userId, isAdmin) => API.post(`/user/update-role/${userId}`, { isAdmin }),
   deleteUser: (userId) => API.delete(`/user/${userId}`),
 };
@@ -57,8 +55,6 @@ export const problemAPI = {
   
   // Admin specific - all submissions for a problem
   getProblemSubmissionsAll: (problemId) => {
-    // Note: This uses the all submissions endpoint and filters client-side
-    // You might want to create a backend endpoint for this
     return submissionAPI.getAll().then(res => {
       return { submissions: res.submissions.filter(sub => sub.problemId === problemId) };
     });
@@ -113,14 +109,12 @@ export const editorialAPI = {
 // Blog APIs
 export const blogAPI = {
   create: (data) => API.post('/blog/add', data),
-  //getAll: () => API.get('/blog'),
   getAll: async (cursor = null,limit=10) => {
     const response = await API.get(
         cursor
             ? `/blog?cursor=${cursor}&limit=${limit}`
             : `/blog?limit=${limit}`
     );
-     //console.log("hi:",response)
     return response;
 },
   getById: (id) => API.get(`/blog/${id}`),
@@ -200,8 +194,6 @@ export const SOCKET_EVENTS = {
 // Helper function to format API errors
 export const formatApiError = (error) => {
   if (error.response) {
-    // The request was made and the server responded with a status code
-    // that falls out of the range of 2xx
     return {
       message: error.response.data?.message || 'An error occurred',
       status: error.response.status,

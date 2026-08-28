@@ -8,7 +8,7 @@ const {
   getProblemById, 
   getAllProblems, 
   getProblemSubmissions 
-} = require("../controllers/problemcontroller.js");
+} = require("../controllers/problemController.js");
 const { 
   getAllProblemsAdmin, 
   getProblemStats, 

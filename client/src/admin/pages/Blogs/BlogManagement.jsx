@@ -75,9 +75,7 @@ const BlogManagement = () => {
 
   const handleRemoveVote = async (userId, voteType) => {
     try {
-      // In a real implementation, you would have an admin endpoint to remove votes
       console.log('Remove vote:', { userId, voteType });
-      // For now, just refresh
       fetchBlog();
     } catch (error) {
       console.error('Failed to remove vote:', error);

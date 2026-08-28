@@ -269,11 +269,11 @@ const UserList = () => {
       </div>
 
       {/* Export Options */}
-      <div className="mt-6 flex justify-end">
+      {/* <div className="mt-6 flex justify-end">
         <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
           Export to CSV
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };

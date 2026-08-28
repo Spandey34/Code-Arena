@@ -338,19 +338,6 @@ const MatchHistory = () => {
         </div>
       </div>
 
-      {/* Match Details Modal (conceptual) */}
-      <div className="mt-6 text-right">
-        <button
-          onClick={() => {
-            // Export matches functionality
-            console.log('Export matches');
-          }}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          Export to CSV
-        </button>
-      </div>
-
       {/* Analysis */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
